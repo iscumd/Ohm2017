@@ -5,15 +5,11 @@ project(ohm_igvc)
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
-  joy
   laser_geometry
   message_generation
-  message_runtime
   roscpp
-  sensor_msgs
-  serial
-  serial_utils
   std_msgs
+  isc_shared
 )
 
 ## System dependencies are found with CMake's conventions
@@ -50,18 +46,14 @@ find_package(catkin REQUIRED COMPONENTS
 ##   * add every package in MSG_DEP_SET to generate_messages(DEPENDENCIES ...)
 
 ## Generate messages in the 'msg' folder
-# add_message_files(
-#   FILES
-#   Message1.msg
-#   Message2.msg
-# )
+add_message_files(
+  FILES
+)
 
 ## Generate services in the 'srv' folder
-# add_service_files(
-#   FILES
-#   Service1.srv
-#   Service2.srv
-# )
+add_service_files(
+  FILES
+)
 
 ## Generate actions in the 'action' folder
 # add_action_files(
@@ -71,10 +63,11 @@ find_package(catkin REQUIRED COMPONENTS
 # )
 
 ## Generate added messages and services with any dependencies listed here
-# generate_messages(
-#   DEPENDENCIES
-#   sensor_msgs#   std_msgs
-# )
+generate_messages(
+  DEPENDENCIES
+  std_msgs
+  isc_shared
+)
 
 ################################################
 ## Declare ROS dynamic reconfigure parameters ##
@@ -108,7 +101,7 @@ find_package(catkin REQUIRED COMPONENTS
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES ohm_igvc
-#  CATKIN_DEPENDS joy laser_geometry message_generation message_runtime roscpp sensor_msgs serial serial_utils std_msgs
+  CATKIN_DEPENDS laser_geometry message_runtime roscpp std_msgs isc_shared
 #  DEPENDS system_lib
 )
 
@@ -144,6 +137,11 @@ include_directories(
 # target_link_libraries(ohm_igvc_node
 #   ${catkin_LIBRARIES}
 # )
+
+# ADD NEW CPPs HERE
+add_executable(${PROJECT_NAME}_drive_mode_control src/drive_mode_control.cpp)
+add_dependencies(${PROJECT_NAME}_drive_mode_control ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(${PROJECT_NAME}_drive_mode_control ${catkin_LIBRARIES})
 
 #############
 ## Install ##
