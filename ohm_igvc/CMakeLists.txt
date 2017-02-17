@@ -139,9 +139,7 @@ include_directories(
 # )
 
 # ADD NEW CPPs HERE
-add_executable(${PROJECT_NAME}_drive_mode_control src/drive_mode_control.cpp)
-add_dependencies(${PROJECT_NAME}_drive_mode_control ${PROJECT_NAME}_generate_messages_cpp)
-target_link_libraries(${PROJECT_NAME}_drive_mode_control ${catkin_LIBRARIES})
+
 
 #############
 ## Install ##
