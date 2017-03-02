@@ -1,0 +1,10 @@
+<launch>
+	<node pkg="joy" type="joy_node" name="joy_node" />
+	<node pkg="isc_shared" type="joystick" name="joystick"/>
+	<node pkg="isc_shared" type="manual_control" name="manual_control" output="screen"/>
+	
+	<node pkg="isc_shared" type="basic_drive_mode_control" name="basic_drive_mode_control" output="screen"/>
+
+	<param name="serial_port" value="/dev/ttyUSB0" />
+	<node pkg="isc_shared" type="roboteq_nextgen" name="roboteq_nextgen" output="screen"/>
+</launch>
