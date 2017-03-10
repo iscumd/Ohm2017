@@ -1,0 +1,9 @@
+prefix=/usr/local
+include=${prefix}/include
+lib=${prefix}/lib
+
+Name: vnproglib-cpp
+Description: VectorNav programming library (C++)
+Version: 1.0.0
+Cflags: -I${include}/vn
+Libs: -L${lib} -lvnproglib-cpp -lpthread
