@@ -56,9 +56,9 @@ void aStarNoDiagonal(int Tx, int Ty, int Sx, int Sy) {
     for (int i = -1; i < 2; i++) {
       for (int j = -1; j < 2; j++) {
 
-        if ((i == -1 && j == -1) || (i == -1 && j == 1)|| (i == 1 && j == 1) || (i == 1 && j ==-1)) {
+        if ((i == -1 && j == -1) || (i == -1 && j == 1)|| (i == 1 && j == 1) || (i == 1 && j ==-1)) { // no diagonal movement doesnt check corners of 3x3 matrix
           continue;
-        }// no diagonal movement
+        }
         if (!(openCell.contains(map[Cx + i][Cy + j])) && !(closedCell.contains(map[Cx + i][Cy + j]))) {
           closedCell.add(map[i][j]);
         }
@@ -75,10 +75,10 @@ void aStarWithDiagonal(int Tx, int Ty, int Sx, int Sy) {
   ArrayList<cell> closedCell = new ArrayList<cell>(40);
   while (!isReached) {
     closedCell.add(map[Cx][Cy]);
-    for (int i = -1; i < 2; i++) {
+    for (int i = -1; i < 2; i++) {  
       for (int j = -1; j < 2; j++) {
-        if (!(openCell.contains(map[Cx + i][Cy + j])) && !(closedCell.contains(map[Cx + i][Cy + j]))) {
-          continue;
+        if (!(openCell.contains(map[Cx + i][Cy + j])) && !(closedCell.contains(map[Cx + i][Cy + j]))) { // checks all surrounding cells
+          
         }
       }
     }
@@ -99,18 +99,20 @@ void setup() {
   int scrYPos = 0;
   for (int i = 0; i < numCellsX; i++) {
     for (int j = 0; j < numCellsY; j++) {
-      map[i][j] = new cell(scrXPos, scrYPos, ((int)(random(20) % 15) == 1 ? true : false));
+      map[i][j] = new cell(scrXPos, scrYPos, ((int)(random(20) % 15) == 1 ? true : false)); // random locations in the map are occupied locations "walls"
       map[i][j].drawCell(cellWidth);
       scrXPos += cellWidth;
     }
     scrXPos = 0;
     scrYPos += cellWidth;
   }
+  // draws target location near the both right corner
   TARGETx = (int)((numCellsX - cellWidth)+random(numCellsX/cellWidth));
   TARGETy = (int)((numCellsY - cellWidth)+random(numCellsY/cellWidth));
   map[TARGETx][TARGETy].c = color(0, 255, 0);
   map[TARGETx][TARGETy].occupied = false;
 
+  // draws start location near the top left corner
   STARTx = (int)random(numCellsX/cellWidth);
   STARTy = (int)random(numCellsY/cellWidth);
   map[STARTx][STARTy].c = color(255, 10, 15);
