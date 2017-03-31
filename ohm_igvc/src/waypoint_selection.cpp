@@ -43,29 +43,36 @@ double dmsConvert(double degrees, double minutes, double seconds) {
 }
 
 vector<ohm_igvc::target> ReadFile(string filename){
+	string mode;
 	string str;
 	ifstream file;
 	vector<ohm_igvc::target> navigationPoints = vector<ohm_igvc::target>();
 
 	file.open(filename.c_str());
-	string mode = getline(file, str); //decimal or dms
+	if((file.rdstate() & std::ifstream::failbit) != 0){
+		ROS_FATAL("Error opening %s", filename.c_str());
+	}
+	getline(file, mode); //decimal or dms
 	while(getline(file, str)){
 		ROS_DEBUG("Read file line: %s", str.c_str());
-		if (str.substr(0,2) == "//") continue;
+		if (str.substr(0,2) == "//") continue; //skip comments
 		vector<string> lineFields = split(str, ','); //latitude,longitude
 		if(lineFields.size() >= 2){
+			ohm_igvc::target currentTarget;
 			if(mode == "decimal"){
-				ohm_igvc::target currentTarget;
 				currentTarget.latitude = atof(lineFields[0].c_str());
 				currentTarget.longitude = atof(lineFields[1].c_str());
 			}
 			else if(mode == "dms"){ //Format: (degrees)d [(minutes)' [(seconds)"]]
 				double degrees, minutes, seconds;
-				ohm_igvc::target currentTarget;
-				sscanf(lineFields[0], "%lfd %lf' %lf\"", degrees, minutes, seconds);
+				sscanf(lineFields[0].c_str(), "%lfd %lf' %lf\"", &degrees, &minutes, &seconds);
 				currentTarget.latitude = dmsConvert(degrees, minutes, seconds);
-				sscanf(lineFields[1], "%lfd %lf' %lf\"", degrees, minutes, seconds);
+				sscanf(lineFields[1].c_str(), "%lfd %lf' %lf\"", &degrees, &minutes, &seconds);
 				currentTarget.longitude = dmsConvert(degrees, minutes, seconds);
+			}
+			else{
+				ROS_FATAL("Invalid waypoint mode.");
+				break;
 			}
 			navigationPoints.push_back(currentTarget);
 		}
@@ -100,7 +107,7 @@ int main(int argc, char **argv){
 		targetLocationList = ReadFile(navigationFile);
 
 		for(int i = 0; i < targetLocationList.size(); i++){
-			ROS_INFO("Target #%i: %f %f", targetLocationList[i].location.id, targetLocationList[i].latitude, targetLocationList[i].longitude);
+			ROS_INFO("Target #%i: %f %f", i, targetLocationList[i].latitude, targetLocationList[i].longitude);
 		}
 
 		ros::ServiceServer service = n.advertiseService("waypoint", waypoint);

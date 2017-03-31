@@ -141,9 +141,9 @@ include_directories(
 # )
 
 # ADD NEW CPPs HERE
-#add_executable(waypoint_selection src/waypoint_selection.cpp)
-#add_dependencies(waypoint_selection ${PROJECT_NAME}_generate_messages_cpp)
-#target_link_libraries(waypoint_selection ${catkin_LIBRARIES})
+add_executable(waypoint_selection src/waypoint_selection.cpp)
+add_dependencies(waypoint_selection ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(waypoint_selection ${catkin_LIBRARIES})
 
 #############
 ## Install ##
