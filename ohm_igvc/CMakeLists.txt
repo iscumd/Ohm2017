@@ -46,14 +46,16 @@ find_package(catkin REQUIRED COMPONENTS
 ##   * add every package in MSG_DEP_SET to generate_messages(DEPENDENCIES ...)
 
 ## Generate messages in the 'msg' folder
-#add_message_files(
-#  FILES
-#)
+add_message_files(
+  FILES
+  target.msg
+)
 
 ## Generate services in the 'srv' folder
-#add_service_files(
-#  FILES
-#)
+add_service_files(
+  FILES
+  waypoint.srv
+)
 
 ## Generate actions in the 'action' folder
 # add_action_files(
@@ -139,7 +141,9 @@ include_directories(
 # )
 
 # ADD NEW CPPs HERE
-
+#add_executable(waypoint_selection src/waypoint_selection.cpp)
+#add_dependencies(waypoint_selection ${PROJECT_NAME}_generate_messages_cpp)
+#target_link_libraries(waypoint_selection ${catkin_LIBRARIES})
 
 #############
 ## Install ##
