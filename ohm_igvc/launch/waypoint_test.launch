@@ -1,0 +1,5 @@
+<launch>
+	<node name="waypoint_selection" pkg="ohm_igvc" type="waypoint_selection" output="screen" />
+	<!--<node name="navigation_pid" pkg="ohm_igvc" type="navigation_pid" output="screen" />-->
+	<param name="navigationFile" value="$(find ohm_igvc)/data/navigationTestDecimal.txt" />
+</launch>
