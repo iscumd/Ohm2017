@@ -1,0 +1,6 @@
+<launch>
+  <arg name="host" default="192.168.0.100" />
+  <node pkg="isc_sick" name="isc_sick" type="LMS1xx_node" launch-prefix="gdb -ex run --args" output="screen">
+    <param name="host" value="$(arg host)" />
+  </node>
+</launch>

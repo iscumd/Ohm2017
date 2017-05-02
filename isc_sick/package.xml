@@ -1,0 +1,22 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>isc_sick</name>
+  <version>0.1.1</version>
+  <description>This package is for use with a SICK LMS1xx series LIDAR operating at 25Hz</description>
+
+  <author>Ben DiDonato</author>
+  <maintainer email="isc-robotics@umich.edu">Intelligent Systems Club</maintainer>
+  <url type="website">iscumd.com</url>
+
+  <license>TODO</license>
+
+  <buildtool_depend>catkin</buildtool_depend>
+  <depend>rosconsole_bridge</depend>
+  <depend>roscpp</depend>
+  <depend>roscpp_serialization</depend>
+  <depend>sensor_msgs</depend>
+
+  <test_depend>roslaunch</test_depend>
+  <test_depend>roslint</test_depend>
+  <test_depend>rosunit</test_depend>
+</package>
