@@ -61,30 +61,7 @@ int main( int argc, char** argv )
     imshow("quadrilateral", transformed);
     imshow("src",src);
     waitKey();
-  		
-  		
-  		
-  		
-  		
-  		
-  		
-  		
-  		
-  		
-  		
-  		
-  		
-  		
-  		
-  		
-  		
-  		
-  		
-  		
-  		
-  		
-  		
-  		waitKey(0);
+ 
 			
 			
 		
