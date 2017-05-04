@@ -26,11 +26,12 @@ int main( int argc, char** argv )
     double cardH=sqrt((Q3.x-Q2.x)*(Q3.x-Q2.x)+(Q3.y-Q2.y)*(Q3.y-Q2.y));//Or you can give your own height
     double cardW=ratio*cardH;
     Rect R(Q1.x,Q1.y,cardW,cardH);
-
-    Point R1=Point2f(R.x,R.y);
-    Point R2=Point2f(R.x+R.width,R.y);
-    Point R3=Point2f(Point2f(R.x+R.width,R.y+R.height));
-    Point R4=Point2f(Point2f(R.x,R.y+R.height));
+	int xshift = 0;
+	int yshift = 0;
+    Point R1=Point2f(R.x+xshift,R.y+yshift);
+    Point R2=Point2f(R.x+R.width+xshift,R.y+yshift);
+    Point R3=Point2f(Point2f(R.x+R.width+xshift,R.y+R.height+yshift));
+    Point R4=Point2f(Point2f(R.x+xshift,R.y+R.height+yshift));
 
     std::vector<Point2f> quad_pts;
     std::vector<Point2f> squre_pts;
@@ -61,7 +62,30 @@ int main( int argc, char** argv )
     imshow("quadrilateral", transformed);
     imshow("src",src);
     waitKey();
- 
+  		
+  		
+  		
+  		
+  		
+  		
+  		
+  		
+  		
+  		
+  		
+  		
+  		
+  		
+  		
+  		
+  		
+  		
+  		
+  		
+  		
+  		
+  		
+  		waitKey(0);
 			
 			
 		
