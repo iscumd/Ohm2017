@@ -68,7 +68,8 @@ void initPID(){
 void pathPlanningCallback(const ohm_igvc::planned_path::ConstPtr& plannedPath){	
 	/* This fires every time a new position is published */
 
-	if (oldCurrentTarget != plannedPath->currentTarget){
+	if (oldCurrentTarget.latitude != plannedPath->currentTarget.latitude
+		|| oldCurrentTarget.longitude != plannedPath->currentTarget.longitude){
 		initPID();
 	}
 	oldCurrentTarget = plannedPath->currentTarget;
@@ -84,11 +85,11 @@ void pathPlanningCallback(const ohm_igvc::planned_path::ConstPtr& plannedPath){
 		heading = heading - M_PI * mathSign(heading);
 	}
 
-	dx = plannedPath->currentTarget->latitude - plannedPath->robot->latitude;
-	dy = plannedPath->currentTarget->longitude - plannedPath->robot->longitude;
+	dx = plannedPath->currentTarget.latitude - plannedPath->robot.latitude;
+	dy = plannedPath->currentTarget.longitude - plannedPath->robot.longitude;
 
-	dlastx = plannedPath->lastTarget->latitude - plannedPath->robot->latitude;
-	dlasty = plannedPath->lastTarget->longitude - plannedPath->robot->longitude;
+	dlastx = plannedPath->lastTarget.latitude - plannedPath->robot.latitude;
+	dlasty = plannedPath->lastTarget.longitude - plannedPath->robot.longitude;
 	lastDist = sqrt(dlastx*dlastx + dlasty*dlasty);
 	
 	c = cos(heading);
@@ -99,8 +100,8 @@ void pathPlanningCallback(const ohm_igvc::planned_path::ConstPtr& plannedPath){
 	cvar.front = dy*c + dx*s;
 	desiredAngle = adjust_angle(atan2(dx,dy), 2.0 * M_PI);
 
-	nx = -(currentTarget.y-lastTarget.y); // -Delta Y
-	ny =  (currentTarget.x-lastTarget.x); //  Delta X
+	nx = -(plannedPath->currentTarget.longitude-plannedPath->lastTarget.longitude); // -Delta Y
+	ny =  (plannedPath->currentTarget.latitude-plannedPath->lastTarget.latitude); //  Delta X
 	temp = hypot(nx, ny)+1e-3; // To avoid division by zero
 	nx /= temp;
 	ny /= temp;
@@ -122,11 +123,11 @@ void pathPlanningCallback(const ohm_igvc::planned_path::ConstPtr& plannedPath){
 
 	lastTime = thisTime; //set time variable
 
-	// inLastTarget = (targetDist<leaveTargetThresh);//Still in last zone.
+	// inLastTarget = (lastDist<leaveTargetThresh);//Still in last zone.
 	// approachingTarget = (cvar.targdist < approachingThresh);//Getting close to the point
 	// reachedTarget = (cvar.targdist < destinationThresh);//Target threshold has been reached
 	ohm_igvc::pid_feedback feedbackMsg;
-	feedbackMsg.lastDist = targetDist;
+	feedbackMsg.lastDist = lastDist;
 	feedbackMsg.targetDist = cvar.targdist;
 	feedbackPub.publish(feedbackMsg);
 

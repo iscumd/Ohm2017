@@ -4,4 +4,4 @@ target lastTarget
 #target nextTarget
 float64 heading
 float64 rWidth
-int dir
+int32 dir
