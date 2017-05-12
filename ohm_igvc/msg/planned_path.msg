@@ -1,7 +1,7 @@
 location_point robot
 target currentTarget
 target lastTarget
-target nextTarget
+#target nextTarget
 float64 heading
 float64 rWidth
 int dir

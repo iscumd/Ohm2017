@@ -1,6 +1,7 @@
 #include "ros/ros.h"
 #include "geometry_msgs/Twist.h"
 #include "ohm_igvc/location_point.h"
+#include "ohm_igvc/pid_feedback.h"
 #include "ohm_igvc/planned_path.h"
 #include "ohm_igvc/target.h"
 
@@ -29,11 +30,12 @@ typedef struct{
 }CVAR;
 
 ros::Publisher turnPub;
-// ros::ServiceClient waypointClient;
+ros::Publisher feedbackPub;
 CVAR cvar;
 double lastTime, thisTime;
 double maxIntErr = 0.5;
 // double destinationThresh = 0.5;
+ohm_igvc::target oldCurrentTarget;
 
 double mathSign(double number){
 	//Returns the number's sign
@@ -66,11 +68,16 @@ void initPID(){
 void pathPlanningCallback(const ohm_igvc::planned_path::ConstPtr& plannedPath){	
 	/* This fires every time a new position is published */
 
+	if (oldCurrentTarget != plannedPath->currentTarget){
+		initPID();
+	}
+	oldCurrentTarget = plannedPath->currentTarget;
+
 	double dx, dy, s, c, nx, ny, dt, temp;
 	double dlastx, dlasty, lastDist;
 	double desiredAngle;
 
-	int reachedTarget;
+	// int reachedTarget;
 
 	if (dir < 0){
 		//If we're going backwards we need to flip heading for calculations. Not used in IGVC
@@ -115,29 +122,18 @@ void pathPlanningCallback(const ohm_igvc::planned_path::ConstPtr& plannedPath){
 
 	lastTime = thisTime; //set time variable
 
-	// inLastTarget = (lastDist<leaveTargetThresh);//Still in last zone.
+	// inLastTarget = (targetDist<leaveTargetThresh);//Still in last zone.
 	// approachingTarget = (cvar.targdist < approachingThresh);//Getting close to the point
 	// reachedTarget = (cvar.targdist < destinationThresh);//Target threshold has been reached
+	ohm_igvc::pid_feedback feedbackMsg;
+	feedbackMsg.lastDist = targetDist;
+	feedbackMsg.targetDist = cvar.targdist;
+	feedbackPub.publish(feedbackMsg);
 
 	geometry_msgs::Twist msg;
 	msg.linear.x = cvar.speed;
 	msg.angular.z = cvar.turn;
 	turnPub.publish(msg);
-
-	//if (reachedTarget){ //reached target
-		//initPID();
-
-		//previousTarget = currentTarget;
-
-		// yeti_snowplow::waypoint waypointReq;
-		// waypointReq.request.ID = previousTarget.location.id + 1;
-		// if (waypointClient.call(waypointReq)){
-		// 	currentTarget = waypointReq.response.waypoint;
-		// }
-		// else { //we've hit the last waypoint or the service is no longer available
-		// 	//TODO
-		// }
-	//}
 }
 
 int main(int argc, char **argv){
@@ -145,18 +141,8 @@ int main(int argc, char **argv){
 
 	ros::NodeHandle n;
 
-	turnPub = n.advertise<geometry_msgs::Twist>("ohmPID", 5);
-
-	// waypointClient = n.serviceClient<yeti_snowplow::waypoint>("waypoint");
-	// yeti_snowplow::waypoint waypointReq;
-
-	// waypointReq.request.ID = 0;
-	// ROS_INFO("Sent request: %i", waypointReq.request.ID);
-	// while (waypointClient.call(waypointReq) == false){ //the service may not be ready yet, so we'll keep trying until we get a response
-	// 	ROS_ERROR("Failed to call the waypoint service; trying again");
-	// 	ROS_INFO("Sent request: %i", waypointReq.request.ID);
-	// }
-	// currentTarget = waypointReq.response.waypoint;
+	feedbackPub = n.advertise<ohm_igvc::pid_feedback>("ohmPidFeedback", 5);
+	turnPub = n.advertise<geometry_msgs::Twist>("ohmPid", 5);
 
 	initPID();
 
