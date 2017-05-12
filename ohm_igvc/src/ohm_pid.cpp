@@ -74,6 +74,8 @@ void pathPlanningCallback(const ohm_igvc::planned_path::ConstPtr& plannedPath){
 	}
 	oldCurrentTarget = plannedPath->currentTarget;
 
+	double heading = plannedPath->heading;
+	int dir = plannedPath->dir;
 	double dx, dy, s, c, nx, ny, dt, temp;
 	double dlastx, dlasty, lastDist;
 	double desiredAngle;
