@@ -48,6 +48,9 @@ find_package(catkin REQUIRED COMPONENTS
 ## Generate messages in the 'msg' folder
 add_message_files(
   FILES
+  location_point.msg
+  pid_feedback.msg
+  planned_path.msg
   target.msg
 )
 
@@ -141,6 +144,10 @@ include_directories(
 # )
 
 # ADD NEW CPPs HERE
+add_executable(ohm_pid src/ohm_pid.cpp)
+add_dependencies(ohm_pid ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(ohm_pid ${catkin_LIBRARIES})
+
 add_executable(waypoint_selection src/waypoint_selection.cpp)
 add_dependencies(waypoint_selection ${PROJECT_NAME}_generate_messages_cpp)
 target_link_libraries(waypoint_selection ${catkin_LIBRARIES})
