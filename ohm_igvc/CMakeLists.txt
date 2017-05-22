@@ -152,6 +152,10 @@ add_executable(waypoint_selection src/waypoint_selection.cpp)
 add_dependencies(waypoint_selection ${PROJECT_NAME}_generate_messages_cpp)
 target_link_libraries(waypoint_selection ${catkin_LIBRARIES})
 
+add_executable(white_line_detection src/white_line_detection.cpp)
+add_dependencies(white_line_detection ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(white_line_detection ${catkin_LIBRARIES})
+
 #############
 ## Install ##
 #############
