@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <ros/ros.h>
 #include "geometry_msgs/Point32.h"
+#include "ohm_igvc/pixel_locations.h"
 
 using namespace std;
 using namespace cv;
@@ -30,13 +31,13 @@ int main(int argc, char **argv)
     ros::NodeHandle n;
 
     // these values are the constants 
-    n.param("white_line_detection_A", A, 0);
-    n.param("white_line_detection_B", B, 0);
-    n.param("white_line_detection_C", C, 0);
-    n.param("white_line_detection_D", D, 0);
+    n.param("white_line_detection_A", A, 0.0);
+    n.param("white_line_detection_B", B, 0.0);
+    n.param("white_line_detection_C", C, 0.0);
+    n.param("white_line_detection_D", D, 0.0);
     //double A = 0.0072189, B = -2.227, C = -0.01162, D = 4.794;
 
-    pixelXY_pub = n.advertise<geometry_msgs::Point32>("whiteLineDistances", 5);
+    pixelXY_pub = n.advertise<ohm_igvc::pixel_locations>("whiteLineDistances", 5);
 
     namedWindow("ORIGINAL", WINDOW_AUTOSIZE);
     namedWindow("FINAL", WINDOW_AUTOSIZE);
@@ -102,7 +103,7 @@ int main(int argc, char **argv)
     ////////////////////////////////////////////////////////////////////////////////////////////////
     while (ros::ok())
     {
-        vector<geometry_msgs::Point32> pixelLocations;
+        ohm_igvc::pixel_locations msg;
 
         ohm_webcam >> input;
         if (input.empty())
@@ -129,7 +130,7 @@ int main(int argc, char **argv)
                     geometry_msgs::Point32 pixelLocation;
                     pixelLocation.x = (A * i) + B;
                     pixelLocation.y = (C * j) + D;
-                    pixelLocations.push_back(pixelLocation);
+                    msg.pixelLocations.push_back(pixelLocation);
 
                     /*Point p = Point2f(i, j);
                     Point o = Point2f(i + 1, j + 1);
@@ -138,7 +139,7 @@ int main(int argc, char **argv)
             }
         }
 
-        pixelXY_pub.publish(pixelLocations);
+        pixelXY_pub.publish(msg);
 
         imshow("FINAL", hsv);
         imshow("ORIGINAL", input);
