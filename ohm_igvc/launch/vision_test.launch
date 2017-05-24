@@ -3,6 +3,7 @@
     <param name="white_line_detection_B" value="-2.227" />
     <param name="white_line_detection_C" value="-0.01162" />
     <param name="white_line_detection_D" value="4.794" />
+    <param name="white_line_detection_sampleEvery" value="10" />
     
 	<node pkg="ohm_igvc" type="white_line_detection" name="white_line_detection" output="screen"/>
 </launch>

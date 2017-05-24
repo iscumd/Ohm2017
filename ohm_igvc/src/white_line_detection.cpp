@@ -15,7 +15,9 @@ void on_low_S_thresh_trackbar(int, void *);
 void on_high_S_thresh_trackbar(int, void *);
 void on_low_V_thresh_trackbar(int, void *);
 void on_high_V_thresh_trackbar(int, void *);
-double A,B,C,D;
+double A, B, C, D;
+int sampleEvery;
+
 ros::Publisher pixelXY_pub;
 
 int main(int argc, char **argv)
@@ -30,11 +32,12 @@ int main(int argc, char **argv)
 
     ros::NodeHandle n;
 
-    // these values are the constants 
+    // these values are the constants
     n.param("white_line_detection_A", A, 0.0);
     n.param("white_line_detection_B", B, 0.0);
     n.param("white_line_detection_C", C, 0.0);
     n.param("white_line_detection_D", D, 0.0);
+    n.param("white_line_detection_sampleEvery", sampleEvery, 4);
     //double A = 0.0072189, B = -2.227, C = -0.01162, D = 4.794;
 
     pixelXY_pub = n.advertise<ohm_igvc::pixel_locations>("whiteLineDistances", 5);
@@ -42,6 +45,7 @@ int main(int argc, char **argv)
     namedWindow("ORIGINAL", WINDOW_AUTOSIZE);
     namedWindow("FINAL", WINDOW_AUTOSIZE);
     namedWindow("WARPED", WINDOW_AUTOSIZE);
+    int count = 0;
 
     VideoCapture ohm_webcam(1);
     ohm_webcam.set(CV_CAP_PROP_FRAME_WIDTH, 640);
@@ -86,10 +90,6 @@ int main(int argc, char **argv)
 
     //setup for white line filtering
     Mat hsv;
-    Vec3b BGRv;
-    uchar blue = BGRv.val[0];  // blue values in frame
-    uchar green = BGRv.val[1]; // green
-    uchar red = BGRv.val[2];   // red
 
     int low_H = 0, low_S = 0, low_V = 200;        // low limit for HSV slider
     int high_H = 180, high_S = 255, high_V = 255; // upper limit for HSV slider
@@ -123,18 +123,21 @@ int main(int argc, char **argv)
         {
             for (int j = 0; j < hsv.rows; j++)
             {
-                BGRv = hsv.at<Vec3b>(j, i);
-                if (BGRv.val[0] == 255 && BGRv.val[1] == 255 && BGRv.val[2] == 255)
+                Scalar BGRv = hsv.at<uchar>(j, i);
+                if (BGRv.val[0] == 255)
                 {
+                    count++;
+                    if (count == sampleEvery) // 
+                    {
+                        count = 0;
+                        geometry_msgs::Point32 pixelLocation;
+                        pixelLocation.x = (A * i) + B;
+                        pixelLocation.y = (C * j) + D;
+                        msg.pixelLocations.push_back(pixelLocation);
+                       
+                    }
 
-                    geometry_msgs::Point32 pixelLocation;
-                    pixelLocation.x = (A * i) + B;
-                    pixelLocation.y = (C * j) + D;
-                    msg.pixelLocations.push_back(pixelLocation);
-
-                    /*Point p = Point2f(i, j);
-                    Point o = Point2f(i + 1, j + 1);
-                    rectangle(input, p, o, Scalar(0, 0, 255), 1, 8, 0);*/
+                    
                 }
             }
         }
@@ -143,8 +146,9 @@ int main(int argc, char **argv)
 
         imshow("FINAL", hsv);
         imshow("ORIGINAL", input);
+        waitKey(16);
 
-        //break;
+        
     }
 }
 
