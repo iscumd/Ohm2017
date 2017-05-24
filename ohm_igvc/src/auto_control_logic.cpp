@@ -1,21 +1,22 @@
 #include "ros/ros.h"
 #include "geometry_msgs/Twist.h"
 
-#include <chrono>
+#include <boost/chrono.hpp>
 #include <string>
 
-typedef std::chrono::high_resolution_clock Clock;
-typedef std::chrono::milliseconds milliseconds;
+//https://stackoverflow.com/a/4974588 but use boost
+typedef boost::chrono::high_resolution_clock Clock;
+typedef boost::chrono::milliseconds milliseconds;
 
 ros::Publisher autoPub;
 Clock::time_point lastOverride = Clock::now();
-double overrideDuration
+double overrideDuration;
 
 void pidCallback(const geometry_msgs::Twist::ConstPtr& msg){
-    if(std::chrono::duration_cast<milliseconds>(Clock::now() - lastOverride).count() > overrideDuration){
+    if(boost::chrono::duration_cast<milliseconds>(Clock::now() - lastOverride).count() > overrideDuration){
         autoPub.publish(*msg);
 
-        ROS_INFO("Auto Control: pid linear.x=%f angular.z=%f", msg.linear.x, msg.angular.z);
+        ROS_INFO("Auto Control: pid linear.x=%f angular.z=%f", msg->linear.x, msg->angular.z);
     }
 }
 
@@ -23,7 +24,7 @@ void overrideCallback(const geometry_msgs::Twist::ConstPtr& msg){
     lastOverride = Clock::now();
 	autoPub.publish(*msg);
 
-	ROS_INFO("Auto Control: override linear.x=%f angular.z=%f", msg.linear.x, msg.angular.z);
+	ROS_INFO("Auto Control: override linear.x=%f angular.z=%f", msg->linear.x, msg->angular.z);
 }
 
 int main(int argc, char **argv){
@@ -31,7 +32,7 @@ int main(int argc, char **argv){
 
 	ros::NodeHandle n;
 
-    n.param("obstacleOverrideDuration", overrideDuration, 1.0);
+    n.param("obstacleOverrideDurationMillis", overrideDuration, 1000.0);
 
 	autoPub = n.advertise<geometry_msgs::Twist>("autoControl", 5);
 
