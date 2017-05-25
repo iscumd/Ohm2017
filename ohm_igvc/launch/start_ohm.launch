@@ -1,4 +1,7 @@
 <launch>
+	<param name="obstacleOverrideDurationMillis" value="1000.0" />
+	<node pkg="ohm_igvc" type="auto_control_logic" name="auto_control_logic" output="screen"/>
+
 	<node pkg="joy" type="joy_node" name="joy_node" />
 	<node pkg="isc_shared" type="joystick" name="joystick"/>
 	<node pkg="isc_shared" type="manual_control" name="manual_control" output="screen"/>
