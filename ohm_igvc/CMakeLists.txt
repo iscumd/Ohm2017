@@ -11,6 +11,7 @@ find_package(catkin REQUIRED COMPONENTS
   std_msgs
   isc_shared
 )
+find_package(OpenCV 3 REQUIRED)
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
@@ -50,6 +51,7 @@ add_message_files(
   FILES
   location_point.msg
   pid_feedback.msg
+  pixel_locations.msg
   planned_path.msg
   target.msg
 )
@@ -72,6 +74,7 @@ generate_messages(
   DEPENDENCIES
   std_msgs
   isc_shared
+  geometry_msgs
 )
 
 ################################################
@@ -119,6 +122,7 @@ catkin_package(
 # include_directories(include)
 include_directories(
   ${catkin_INCLUDE_DIRS}
+  ${OpenCV_INCLUDE_DIRS}
 )
 
 ## Declare a C++ library
@@ -155,6 +159,10 @@ target_link_libraries(ohm_pid ${catkin_LIBRARIES})
 add_executable(waypoint_selection src/waypoint_selection.cpp)
 add_dependencies(waypoint_selection ${PROJECT_NAME}_generate_messages_cpp)
 target_link_libraries(waypoint_selection ${catkin_LIBRARIES})
+
+add_executable(white_line_detection src/white_line_detection.cpp)
+add_dependencies(white_line_detection ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(white_line_detection ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
 
 #############
 ## Install ##
