@@ -1,4 +1,5 @@
 <launch>
+    <!-- calibration constants-->
 	<param name="white_line_detection_A" value="0.0072189" />
     <param name="white_line_detection_B" value="-2.227" />
     <param name="white_line_detection_C" value="-0.01162" />
