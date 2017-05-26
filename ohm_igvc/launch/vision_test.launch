@@ -1,9 +1,29 @@
 <launch>
+    <!-- calibration constants-->
 	<param name="white_line_detection_A" value="0.0072189" />
     <param name="white_line_detection_B" value="-2.227" />
     <param name="white_line_detection_C" value="-0.01162" />
     <param name="white_line_detection_D" value="4.794" />
+
+    <!-- sampling freq -->
     <param name="white_line_detection_sampleEvery" value="10" />
+    
+    <!-- ratio -->
+    <param name="white_line_detection_ratio" value="1.3333" />
+    
+    <!--0 is laptop cam, 1 is external-->
+    <param name="white_line_detection_camSelect" value="0" />
+    
+    <!-- Pixel coordinates go here -->
+    <param name="white_line_detection_topLeftXpix" value="247" />
+    <param name="white_line_detection_topLeftYpix" value="218" />
+    <param name="white_line_detection_topRightXpix" value="393" />
+    <param name="white_line_detection_topRightYpix" value="216" />
+    <param name="white_line_detection_bottomRightXpix" value="419" />
+    <param name="white_line_detection_bottomRightYpix" value="290" />
+    <param name="white_line_detection_bottomLeftXpix" value="224" />
+    <param name="white_line_detection_bottomLeftYpix" value="295" />
+    
     
 	<node pkg="ohm_igvc" type="white_line_detection" name="white_line_detection" output="screen"/>
 </launch>

@@ -17,6 +17,17 @@ void on_low_V_thresh_trackbar(int, void *);
 void on_high_V_thresh_trackbar(int, void *);
 double A, B, C, D;
 int sampleEvery;
+double ratio;
+int cam;
+
+int topLeftXpix,
+    topLeftYpix,
+    topRightXpix,
+    topRightYpix,
+    bottomRightXpix,
+    bottomRightYpix,
+    bottomLeftXpix,
+    bottomLeftYpix;
 
 ros::Publisher pixelXY_pub;
 
@@ -37,8 +48,23 @@ int main(int argc, char **argv)
     n.param("white_line_detection_B", B, 0.0);
     n.param("white_line_detection_C", C, 0.0);
     n.param("white_line_detection_D", D, 0.0);
-    n.param("white_line_detection_sampleEvery", sampleEvery, 4);
     //double A = 0.0072189, B = -2.227, C = -0.01162, D = 4.794;
+
+    // camera select 0-builtin, 1-external
+    n.param("white_line_detection_camSelect", cam, 0);
+    // sampling freq
+    n.param("white_line_detection_sampleEvery", sampleEvery, 4);
+    // ratio
+    n.param("white_line_detection_ratio", ratio, 1.3333);
+    // Pixel coordinates
+    n.param("white_line_detection_topLeftXpix", topLeftXpix, 247);
+    n.param("white_line_detection_topLeftYpix", topLeftYpix, 218);
+    n.param("white_line_detection_topRightXpix", topRightXpix, 393);
+    n.param("white_line_detection_topRightYpix", topRightYpix, 216);
+    n.param("white_line_detection_bottomRightXpix", bottomRightXpix, 419);
+    n.param("white_line_detection_bottomRightYpix", bottomRightYpix, 290);
+    n.param("white_line_detection_bottomLeftXpix", bottomLeftXpix, 224);
+    n.param("white_line_detection_bottomLeftYpix", bottomLeftYpix, 295);
 
     pixelXY_pub = n.advertise<ohm_igvc::pixel_locations>("whiteLineDistances", 5);
 
@@ -47,7 +73,7 @@ int main(int argc, char **argv)
     namedWindow("WARPED", WINDOW_AUTOSIZE);
     int count = 0;
 
-    VideoCapture ohm_webcam(1);
+    VideoCapture ohm_webcam(cam);
     ohm_webcam.set(CV_CAP_PROP_FRAME_WIDTH, 640);
     ohm_webcam.set(CV_CAP_PROP_FRAME_HEIGHT, 480);
 
@@ -56,12 +82,12 @@ int main(int argc, char **argv)
 
     // setup for keystone correction
     Mat transmtx, transformed;
-    Rect im_ROI = Rect(50, 3, 500, 381); // used for cropping
-    Point Q1 = Point2f(247, 218);        //top left pixel coordinate
-    Point Q2 = Point2f(393, 216);        //top right
-    Point Q3 = Point2f(419, 290);        //bottom right
-    Point Q4 = Point2f(224, 295);        //bottom left
-    double ratio = 1.3333;               // width / height of the actual panel on the ground
+    Rect im_ROI = Rect(50, 3, 500, 381);                  // used for cropping
+    Point Q1 = Point2f(topLeftXpix, topLeftYpix);         //top left pixel coordinate
+    Point Q2 = Point2f(topRightXpix, topRightYpix);       //top right
+    Point Q3 = Point2f(bottomRightXpix, bottomRightYpix); //bottom right
+    Point Q4 = Point2f(bottomLeftXpix, bottomLeftYpix);   //bottom left
+
     double cardH = sqrt((Q3.x - Q2.x) * (Q3.x - Q2.x) + (Q3.y - Q2.y) * (Q3.y - Q2.y));
     double cardW = ratio * cardH;
     Rect R(Q1.x, Q1.y, cardW, cardH);
@@ -91,7 +117,7 @@ int main(int argc, char **argv)
     //setup for white line filtering
     Mat hsv;
 
-    int low_H = 0, low_S = 0, low_V = 200;        // low limit for HSV slider
+    int low_H = 0, low_S = 0, low_V = 200;        // lower limit for HSV slider
     int high_H = 180, high_S = 255, high_V = 255; // upper limit for HSV slider
 
     createTrackbar("Low Hue", "FINAL", &low_H, 180, on_low_H_thresh_trackbar);
@@ -127,17 +153,14 @@ int main(int argc, char **argv)
                 if (BGRv.val[0] == 255)
                 {
                     count++;
-                    if (count == sampleEvery) // 
+                    if (count == sampleEvery) //
                     {
                         count = 0;
                         geometry_msgs::Point32 pixelLocation;
                         pixelLocation.x = (A * i) + B;
                         pixelLocation.y = (C * j) + D;
                         msg.pixelLocations.push_back(pixelLocation);
-                       
                     }
-
-                    
                 }
             }
         }
@@ -147,8 +170,6 @@ int main(int argc, char **argv)
         imshow("FINAL", hsv);
         imshow("ORIGINAL", input);
         waitKey(16);
-
-        
     }
 }
 
