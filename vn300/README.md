@@ -10,3 +10,4 @@
 1.	Copy the contents of the include folder to `/usr/local/include/vn`. `sudo cp -a --parents include/. /usr/local/include/vn/`
 1.	Change directory to the gps package, and copy the libvnproglib-cpp.pc file to `/usr/local/lib/pkgconfig/`. `sudo cp --parents libvnproglib-cpp.pc /usr/local/lib/pkgconfig`.
 1.	Build and run the node. 
+#### If the node does not compile, verify the permissions for all the installed files, including libvnproglib-cpp.pc
