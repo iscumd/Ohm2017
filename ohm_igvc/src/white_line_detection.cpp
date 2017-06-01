@@ -6,6 +6,8 @@
 #include <ros/ros.h>
 #include "geometry_msgs/Point32.h"
 #include "ohm_igvc/pixel_locations.h"
+#define timeStart start = clock();
+#define timeEnd cout << "time: " << (clock() - start) / (double)(CLOCKS_PER_SEC / 1000) << "ms" << endl;
 
 using namespace std;
 using namespace cv;
@@ -28,6 +30,7 @@ int topLeftXpix,
     bottomRightYpix,
     bottomLeftXpix,
     bottomLeftYpix;
+bool recording, drawing;
 
 ros::Publisher pixelXY_pub;
 
@@ -38,6 +41,10 @@ int main(int argc, char **argv)
     Y_meter = C * X + D , C & D are const, Y is y coord of pixel   
     */
     // double X_meter, Y_meter;
+
+    clock_t start;
+    //timeStart;
+    //timeEnd
 
     ros::init(argc, argv, "white_line_detection");
 
@@ -66,14 +73,21 @@ int main(int argc, char **argv)
     n.param("white_line_detection_bottomLeftXpix", bottomLeftXpix, 224);
     n.param("white_line_detection_bottomLeftYpix", bottomLeftYpix, 295);
 
+    // enable/disable recording
+    n.param("white_line_detection_enableRecording", recording, false);
+
+    // enable/disable drawing
+    n.param("white_line_detection_enableDrawing", drawing, false);
+
     pixelXY_pub = n.advertise<ohm_igvc::pixel_locations>("whiteLineDistances", 5);
 
     namedWindow("ORIGINAL", WINDOW_AUTOSIZE);
     namedWindow("FINAL", WINDOW_AUTOSIZE);
     namedWindow("WARPED", WINDOW_AUTOSIZE);
-    int count = 0;
 
     VideoCapture ohm_webcam(cam);
+
+    VideoWriter recordVideo("ohm_run.avi", CV_FOURCC('M', 'J', 'P', 'G'), 10, Size(640, 480));
     ohm_webcam.set(CV_CAP_PROP_FRAME_WIDTH, 640);
     ohm_webcam.set(CV_CAP_PROP_FRAME_HEIGHT, 480);
 
@@ -115,7 +129,7 @@ int main(int argc, char **argv)
     //////////////////////////////////////////////////////////////////////////////////////////////////
 
     //setup for white line filtering
-    Mat hsv;
+    Mat hsv, hsv_resize, warped_resize;
 
     int low_H = 0, low_S = 0, low_V = 200;        // lower limit for HSV slider
     int high_H = 180, high_S = 255, high_V = 255; // upper limit for HSV slider
@@ -126,9 +140,13 @@ int main(int argc, char **argv)
     createTrackbar("High Sat", "FINAL", &high_S, 255, on_high_S_thresh_trackbar);
     createTrackbar("Low Val", "FINAL", &low_V, 255, on_low_V_thresh_trackbar);
     createTrackbar("High Val", "FINAL", &high_V, 255, on_high_V_thresh_trackbar);
+
+    Point p;
+    Point o;
     ////////////////////////////////////////////////////////////////////////////////////////////////
     while (ros::ok())
     {
+        timeStart;
         ohm_igvc::pixel_locations msg;
 
         ohm_webcam >> input;
@@ -138,28 +156,31 @@ int main(int argc, char **argv)
         warpPerspective(input, transformed, transmtx, transformed.size());
         Cropped_region = transformed(im_ROI);
 
-        imshow("WARPED", Cropped_region);
         cvtColor(Cropped_region, hsv, CV_BGR2HSV);
         inRange(hsv, Scalar(low_H, low_S, low_V, 0), Scalar(high_H, high_S, high_V, 0), hsv);
 
         erode(hsv, hsv, Mat(), Point(-1, -1), 3);
         dilate(hsv, hsv, Mat(), Point(-1, -1), 2);
+        resize(hsv, hsv_resize, Size(100, 100), 0, 0, INTER_NEAREST); // need to recalibrate if changing size
+        resize(Cropped_region, warped_resize, Size(100, 100), 0, 0, INTER_NEAREST);
 
-        for (int i = 0; i < hsv.cols; i++)
+        for (int i = 0; i < hsv_resize.cols; i++)
         {
-            for (int j = 0; j < hsv.rows; j++)
+            for (int j = 0; j < hsv_resize.rows; j++)
             {
-                Scalar BGRv = hsv.at<uchar>(j, i);
+                Scalar BGRv = hsv_resize.at<uchar>(j, i);
                 if (BGRv.val[0] == 255)
                 {
-                    count++;
-                    if (count == sampleEvery) //
+
+                    geometry_msgs::Point32 pixelLocation;
+                    pixelLocation.x = (A * i) + B;
+                    pixelLocation.y = (C * j) + D;
+                    msg.pixelLocations.push_back(pixelLocation);
+                    if (drawing)
                     {
-                        count = 0;
-                        geometry_msgs::Point32 pixelLocation;
-                        pixelLocation.x = (A * i) + B;
-                        pixelLocation.y = (C * j) + D;
-                        msg.pixelLocations.push_back(pixelLocation);
+                        p = Point2f(i, j);
+                        o = Point2f(i + 1, j + 1);
+                        rectangle(Cropped_region, p, o, Scalar(0, 255, 0), 1, 8, 0);
                     }
                 }
             }
@@ -167,9 +188,15 @@ int main(int argc, char **argv)
 
         pixelXY_pub.publish(msg);
 
-        imshow("FINAL", hsv);
+        imshow("WARPED", warped_resize);
         imshow("ORIGINAL", input);
+        imshow("FINAL", hsv_resize);
+        if (recording)
+        {
+            recordVideo.write(input);
+        }
         waitKey(16);
+        timeEnd;
     }
 }
 

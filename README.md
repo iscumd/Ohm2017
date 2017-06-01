@@ -6,11 +6,42 @@ This package targets ROS Kinetic.
 
 Requires [iscumd/SharedROSNodes](https://github.com/iscumd/SharedROSNodes).
 
-# Camera Configuration and Setup
-1. Place rectangular object in front of robot so that center of object is in line with the Lidar's center point
-2. Get the coordinates of the rectangle's corners in XY relative to the Lidar center point units in cm
-3. Make sure camera mount is secure and will not budge.
-4. Take a picture using camera.
-5. Open said picture in GIMP and get pixel coordinates of the object starting from top left and working clockwise
-6. Input rectangle's real coordinates and pixel coordinates into program (should theorectically be ROS params)
+# CAMERA CONFIGURATION and SETUP
+## CAMERA MUST BE RECAILBRATED IF POSITION AND ORIENTATION CHANGE
+## CAMERA MUST START BEFORE THE MAPPING NODE TO INSURE ADJUSTMENT
+1. Place wooden calibration stick named "Ohm Calibration Stick" so that the wooden protrusion that is on the short end of stick is flush with the front of robot and inline with the centerline of the robot.
+2.  Place cardboard tri-fold flat with the non-white side flat on the ground and infront of calibration stick so that the center line of tri-fold is inline with the robot's centerline.
+3.  From the center of lidar measure the X and Y distances in meters (round to the nearest cm) of 2 diagonal corners i.e O and M
+Note. Left of the centerline is negative from the perspective of the robot
+                   
+                   
+           L---------------M
+           |               |
+           |   tri-fold    |   Height is always perpendicular to the robot
+           |               |   Width is always parallel to the robot
+           O---------------N
+                   |
+                   | <-- wooden stick
+                   |
+                -------
+                 robot
 
+4. Open Cheese and change resolution to 640x480, take photo. 
+5. Open image in GIMP and get the pixel coodinates of each corner.
+6. In vision_test.launch under "Pixel coordinates go here" plug the pixel coordinates into their respective locations
+
+
+                
+          ex. param name="white_line_detection_topLeftXpix" value="247" 
+
+7. Calculate ratio. ratio = Width/Height ( if using the 48x36in tri-fold ratio is 1.3333)
+plug the value into the vision_test.launch under "ratio".
+
+8. Now run white_line_detection.cpp using ros, and save the image in the window labeled "WARPED" (there is a save icon) 
+
+9. Open the image labeled "WARPED" and get the new pixel coordinates of the diagonal corners that you found their respective XY distances.
+
+10. To calculate the constants, use either the source "calibration_formula.cpp", or the executable "calibrate" located in Ohm2017/Camera_Calibration, and plug in values for the new pixel coordinates from step 9 and their respective XY distances from step 3.
+
+11. To enable video recording or drawing overlays, in vision_test.launch under "Enable recording" and "Enable drawing" respectively, change false to true. Recording records the raw footage.
+                
