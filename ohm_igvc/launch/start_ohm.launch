@@ -6,8 +6,9 @@
 	<node pkg="isc_shared" type="joystick" name="joystick"/>
 	<node pkg="isc_shared" type="manual_control" name="manual_control" output="screen"/>
 	
-	<node pkg="isc_shared" type="basic_drive_mode_control" name="basic_drive_mode_control" output="screen"/>
+	<param name="arduino_serial_port" value="/dev/ttyACM0" />
+	<node pkg="ohm_igvc" type="ohm_drive_mode_control" name="ohm_drive_mode_control" output="screen"/>
 
 	<param name="serial_port" value="/dev/ttyUSB0" />
-	<node pkg="isc_shared" type="roboteq_nextgen" name="roboteq_nextgen" output="screen"/>
+	<node pkg="isc_shared" type="roboteq_nextgen" name="roboteq_nextgen"/>
 </launch>
