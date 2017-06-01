@@ -16,7 +16,7 @@ find_package(catkin REQUIRED
 
 ## Necessary for finding libvnprog
 find_package(PkgConfig REQUIRED)
-pkg_check_modules(VNPROG REQUIRED libvnprog)
+pkg_check_modules(VNPROG REQUIRED libvnproglib-cpp)
 
 ## System dependencies are found with CMake's conventions
 find_package(Boost REQUIRED)
