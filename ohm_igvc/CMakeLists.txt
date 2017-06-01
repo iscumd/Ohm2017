@@ -148,6 +148,10 @@ include_directories(
 # )
 
 # ADD NEW CPPs HERE
+add_executable(auto_control_logic src/auto_control_logic.cpp)
+add_dependencies(auto_control_logic ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(auto_control_logic ${catkin_LIBRARIES})
+
 add_executable(ohm_pid src/ohm_pid.cpp)
 add_dependencies(ohm_pid ${PROJECT_NAME}_generate_messages_cpp)
 target_link_libraries(ohm_pid ${catkin_LIBRARIES})
