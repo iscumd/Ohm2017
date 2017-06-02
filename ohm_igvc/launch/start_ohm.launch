@@ -1,5 +1,8 @@
 <launch>
 
+	<param name="navigationFile" value="$(find ohm_igvc)/data/qualification.txt" />
+	<node name="waypoint_selection" pkg="ohm_igvc" type="waypoint_selection" output="screen" />
+
 	<param name="pid_target_threshold" value="5.0" />
 	<param name="pid_target_change_delay" value="0.0" />
 	<node pkg="ohm_igvc" type="ohm_pid" name="ohm_pid" output="screen"/>
