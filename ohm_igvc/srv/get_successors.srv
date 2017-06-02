@@ -1,0 +1,4 @@
+int32 x
+int32 y
+---
+map_cell[8] nodes
