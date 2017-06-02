@@ -1,4 +1,5 @@
 #include "ros/ros.h"
+#include "geometry_msgs/Pose2D.h"
 #include "geometry_msgs/Twist.h"
 #include "ohm_igvc/location_point.h"
 #include "ohm_igvc/pid_feedback.h"
@@ -39,6 +40,7 @@ ohm_igvc::target oldCurrentTarget;
 double targetThreshold;
 double targetChangeDelayParameter; //Hz
 ohm_igvc::planned_path plannedPath;
+geometry_msgs::Pose2D odometry
 
 
 double mathSign(double number){
@@ -69,9 +71,19 @@ void initPID(){
 	cvar.pErr = cvar.iErr = cvar.dErr = 0;
 }
 
-void pathPlanningCallback(const ohm_igvc::planned_path::ConstPtr& newPlannedPath){	
-	/* This fires every time a new position is published */
-	plannedPath = *newPlannedPath;
+void pathPlanningCallback(const ohm_igvc::planned_path::ConstPtr& plannedPathMsg){	
+	/* This fires every time a new planned path is published */
+	plannedPath = *plannedPathMsg;
+}
+
+void odometryCallback(const geometry_msgs::Pose2D::ConstPtr& odometryMsg){	
+	/* This fires every time a new position and heading is published */
+	odometry = *odometryMsg;
+}
+
+void pathPlannerSpeedCallback(const geometry_msgs::Twist::ConstPtr& twistMsg){	
+	/* This fires every time a new position and heading is published */
+	cvar.speed = twistMsg->linear.x;
 }
 
 void pid(){
@@ -83,7 +95,7 @@ void pid(){
 	}
 	oldCurrentTarget = plannedPath.currentTarget;
 
-	double heading = plannedPath.heading;
+	double heading = odometry.theta;
 	int dir = plannedPath.dir;
 	double dx, dy, s, c, nx, ny, dt, temp;
 	double dlastx, dlasty, lastDist;
@@ -96,11 +108,11 @@ void pid(){
 		heading = heading - M_PI * mathSign(heading);
 	}
 
-	dx = plannedPath.currentTarget.latitude - plannedPath.robot.latitude;
-	dy = plannedPath.currentTarget.longitude - plannedPath.robot.longitude;
+	dx = plannedPath.currentTarget.latitude - odometry.x;
+	dy = plannedPath.currentTarget.longitude - odometry.y;
 
-	dlastx = plannedPath.lastTarget.latitude - plannedPath.robot.latitude;
-	dlasty = plannedPath.lastTarget.longitude - plannedPath.robot.longitude;
+	dlastx = plannedPath.lastTarget.latitude - odometry.x;
+	dlasty = plannedPath.lastTarget.longitude - odometry.y;
 	lastDist = sqrt(dlastx*dlastx + dlasty*dlasty);
 	
 	// c = cos(heading);
@@ -162,6 +174,8 @@ int main(int argc, char **argv){
 	initPID();
 
 	ros::Subscriber pathPlanningSub = n.subscribe("pathPlanning", 5, pathPlanningCallback);
+	ros::Subscriber odometrySub = n.subscribe("/ohm/odom", 5, odometryCallback);
+	ros::Subscriber pathPlannerSpeedSub = n.subscribe("/ohm/pathPlannerSpeed", 5, pathPlannerSpeedCallback);
 
 	// ros::spin();
 	while(ros::ok()){
