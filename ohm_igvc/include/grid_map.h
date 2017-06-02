@@ -28,6 +28,7 @@ class grid_map {
 		grid_map(int width, int height, double resolution, int threshold, geometry_msgs::Point raster_reference); // 
 		void laser_scan_update(const sensor_msgs::LaserScan::ConstPtr &scan); //  
 		void point_cloud_update(const sensor_msgs::PointCloud::ConstPtr &points); // 
+		void camera_update(const ohm_igvc::pixel_locations::ConstPtr &cam);
 		void odometry_update(const nav_msgs::Odometry::ConstPtr &odom); // 
 		void display_map(const ros::TimerEvent &e);
 
@@ -38,8 +39,9 @@ class grid_map {
 		bool robot_position_callback(ohm_igvc::robot_position::Request &rq, ohm_igvc::robot_position::Response &rp); //
 		// double obstacle_cost(int x, int y); // for later
 		double quaternion_to_euler(geometry_msgs::Quaternion q); //
+		// double distance(Point32 first, Node second) { return std::hypot((second.x - first.x), (second.y - first.y)); };
 
-		cv::Mat map;
+		cv::Mat m_world;
 		
 		// position
 		geometry_msgs::Pose2D odometry;

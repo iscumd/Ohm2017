@@ -17,7 +17,7 @@
 
 */	
 
-grid_map::grid_map() :
+grid_map::grid_map(unsigned short threshold = 200) :
 	m_width(100),
 	m_height(100),
 	m_resolution(0.2),
@@ -25,7 +25,7 @@ grid_map::grid_map() :
  {
 
 	bool show_map = false;
-	std::string odom_topic = "/ohm/odom";
+	std::string odom_topic = "/ohm/odom", laser_topic = "/ohm/laser", camera_topic = "/ohm/eyes";
 	raster_reference.x = 0.0; raster_reference.y = 0.0;
 
 	m_grid_x = (m_width / m_resolution);
@@ -34,14 +34,17 @@ grid_map::grid_map() :
 	// parameters
 	node.param("show_map", show_map, show_map);
 	node.param("odometry_topic", odom_topic, odom_topic);
+	node.param("laser_topic", laser_topic, laser_topic);
+	node.param("camera_topic", camera_topic, camera_topic);
 	node.param("raster_x", raster_reference.x, raster_reference.x);
 	node.param("raster_y", raster_reference.y, raster_reference.y);
 	node.param("resolution", m_resolution, m_resolution);
 	node.param("width", m_width, m_width);
 	node.param("height", m_height, m_height);
 
-	laser_input = node.subscribe<sensor_msgs::LaserScan>(map_input, 3, &grid_map::laser_scan_update, &this);
-	odometry_input = node.subscribe<geometry_msgs::Pose2D>(odom_input, 3, &grid_map::odometry_update, &this);
+	camera_input = node.subscribe<ohm_igvc::pixel_locations>(camera_topic, 3, &grid_map::camera_update, this);
+	laser_input = node.subscribe<sensor_msgs::LaserScan>(laser_topic, 3, &grid_map::laser_scan_update, this);
+	odometry_input = node.subscribe<geometry_msgs::Pose2D>(odom_topic, 3, &grid_map::odometry_update, this);
 
 	succesors = node.advertiseService("get_successors", &grid_map::successors_callback, this);
 	cell_to_real = node.advertiseService("cell_to_real", &grid_map::cell_to_real_callback, this);
@@ -50,9 +53,10 @@ grid_map::grid_map() :
 
 	if(show_map) {
 		map_display_timer = node.createTimer(ros::Duration(0.5), &grid_map::display_map, this);
+		cv::namedWindow("Map", WINDOW_AUTOSIZE);
 	}
 
-	map.create(m_grid_y, m_grid_x, CV_16S);
+	m_world.create(m_grid_y, m_grid_x, CV_16U);
 }
 
 void grid_map::laser_scan_update(const sensor_msgs::LaserScan::ConstPtr &scan) {
@@ -86,12 +90,27 @@ void grid_map::point_cloud_update(const sensor_msgs::PointCloud::ConstPtr &point
 	}
 }
 
+void camera_update(const ohm_igvc::pixel_locations::ConstPtr &cam) {
+	for(int pixel = 0; pixel < cam->pixelLocations.size(); pixel++) {
+		double cos_heading = std::cos(odometry.theta), sin_heading = std::sin(odometry.theta);
+		float x_prime = cam->pixelLocations[pixel].x, y_prime = cam->pixelLocations[pixel].y;
+
+		int i = ((odometry.x + ((x_prime * cos_heading) - (y_prime * sin_heading))) - raster_reference.x) / m_resolution;
+		int j = ((odometry.y + ((y_prime * cos_heading) + (x_prime * sin_heading))) + raster_reference.y) / m_resolution;
+
+		if(i > m_world.cols() || i < 0) continue;
+		if(j > m_world.rows() || j < 0) continue;
+
+		if(m_world.ptr<short>(j)[j] < m_threshold) m_world.ptr<short>(j)[i]++;
+	}
+}
+
 void grid_map::odometry_update(const geometry_msgs::Pose2D::ConstPtr &odom) {
 	odometry = odom;
 }
 
 void grid_map::display_map(const ros::TimerEvent &e) {
-	
+	imshow("Map", m_world);
 }
 
 bool grid_map::cell_to_real_callback(ohm_igvc::Coordinate::Request &rq, ohm_igvc::Coordinate::Response &rp) {
