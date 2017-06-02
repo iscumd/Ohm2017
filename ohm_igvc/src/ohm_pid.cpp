@@ -14,9 +14,9 @@ using namespace std;
 
 typedef struct{
 	double targdist;
-	double targbearing;
-	double front;
-	double right;
+	// double targbearing;
+	// double front;
+	// double right;
 	double speed;               // between -1 to 1
 	double turn;                // between -1 to 1
 	double pErr;
@@ -26,7 +26,7 @@ typedef struct{
 	double kD;
 	double iErr;
 	double kI;
-	double lookAhead;
+	// double lookAhead;
 }CVAR;
 
 ros::Publisher turnPub;
@@ -36,6 +36,8 @@ double lastTime, thisTime;
 double maxIntErr = 0.5;
 // double destinationThresh = 0.5;
 ohm_igvc::target oldCurrentTarget;
+float targetThreshold;
+ros::Rate targetChangeDelay; //Hz
 
 double mathSign(double number){
 	//Returns the number's sign
@@ -70,6 +72,7 @@ void pathPlanningCallback(const ohm_igvc::planned_path::ConstPtr& plannedPath){
 
 	if (oldCurrentTarget.latitude != plannedPath->currentTarget.latitude
 		|| oldCurrentTarget.longitude != plannedPath->currentTarget.longitude){
+		targetChangeDelay.sleep();
 		initPID();
 	}
 	oldCurrentTarget = plannedPath->currentTarget;
@@ -94,12 +97,12 @@ void pathPlanningCallback(const ohm_igvc::planned_path::ConstPtr& plannedPath){
 	dlasty = plannedPath->lastTarget.longitude - plannedPath->robot.longitude;
 	lastDist = sqrt(dlastx*dlastx + dlasty*dlasty);
 	
-	c = cos(heading);
-	s = sin(heading);
+	// c = cos(heading);
+	// s = sin(heading);
 
 	cvar.targdist = sqrt(dx*dx + dy*dy);
-	cvar.right = dx*c - dy*s;
-	cvar.front = dy*c + dx*s;
+	// cvar.right = dx*c - dy*s;
+	// cvar.front = dy*c + dx*s;
 	desiredAngle = adjust_angle(atan2(dx,dy), 2.0 * M_PI);
 
 	nx = -(plannedPath->currentTarget.longitude-plannedPath->lastTarget.longitude); // -Delta Y
@@ -143,6 +146,11 @@ int main(int argc, char **argv){
 	ros::init(argc, argv, "ohm_pid");
 
 	ros::NodeHandle n;
+
+	n.param("pid_target_threshold", targetThreshold, 5.0);
+	double targetChangeDelayParameter;
+	n.param("pid_target_change_delay", targetChangeDelayParameter, 0.0);
+	targetChangeDelay = ros::Rate(targetChangeDelayParameter);
 
 	feedbackPub = n.advertise<ohm_igvc::pid_feedback>("ohmPidFeedback", 5);
 	turnPub = n.advertise<geometry_msgs::Twist>("ohmPid", 5);
