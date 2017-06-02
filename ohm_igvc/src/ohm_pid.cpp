@@ -40,7 +40,7 @@ ohm_igvc::target oldCurrentTarget;
 double targetThreshold;
 double targetChangeDelayParameter; //Hz
 ohm_igvc::planned_path plannedPath;
-geometry_msgs::Pose2D odometry
+geometry_msgs::Pose2D odometry;
 
 
 double mathSign(double number){
