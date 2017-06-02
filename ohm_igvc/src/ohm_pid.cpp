@@ -36,8 +36,10 @@ double lastTime, thisTime;
 double maxIntErr = 0.5;
 // double destinationThresh = 0.5;
 ohm_igvc::target oldCurrentTarget;
-float targetThreshold;
-ros::Rate targetChangeDelay; //Hz
+double targetThreshold;
+double targetChangeDelayParameter; //Hz
+ohm_igvc::planned_path plannedPath;
+
 
 double mathSign(double number){
 	//Returns the number's sign
@@ -67,18 +69,22 @@ void initPID(){
 	cvar.pErr = cvar.iErr = cvar.dErr = 0;
 }
 
-void pathPlanningCallback(const ohm_igvc::planned_path::ConstPtr& plannedPath){	
+void pathPlanningCallback(const ohm_igvc::planned_path::ConstPtr& newPlannedPath){	
 	/* This fires every time a new position is published */
+	plannedPath = *newPlannedPath;
+}
 
-	if (oldCurrentTarget.latitude != plannedPath->currentTarget.latitude
-		|| oldCurrentTarget.longitude != plannedPath->currentTarget.longitude){
+void pid(){
+	if (oldCurrentTarget.latitude != plannedPath.currentTarget.latitude
+		|| oldCurrentTarget.longitude != plannedPath.currentTarget.longitude){
+		ros::Rate targetChangeDelay(targetChangeDelayParameter);
 		targetChangeDelay.sleep();
 		initPID();
 	}
-	oldCurrentTarget = plannedPath->currentTarget;
+	oldCurrentTarget = plannedPath.currentTarget;
 
-	double heading = plannedPath->heading;
-	int dir = plannedPath->dir;
+	double heading = plannedPath.heading;
+	int dir = plannedPath.dir;
 	double dx, dy, s, c, nx, ny, dt, temp;
 	double dlastx, dlasty, lastDist;
 	double desiredAngle;
@@ -90,11 +96,11 @@ void pathPlanningCallback(const ohm_igvc::planned_path::ConstPtr& plannedPath){
 		heading = heading - M_PI * mathSign(heading);
 	}
 
-	dx = plannedPath->currentTarget.latitude - plannedPath->robot.latitude;
-	dy = plannedPath->currentTarget.longitude - plannedPath->robot.longitude;
+	dx = plannedPath.currentTarget.latitude - plannedPath.robot.latitude;
+	dy = plannedPath.currentTarget.longitude - plannedPath.robot.longitude;
 
-	dlastx = plannedPath->lastTarget.latitude - plannedPath->robot.latitude;
-	dlasty = plannedPath->lastTarget.longitude - plannedPath->robot.longitude;
+	dlastx = plannedPath.lastTarget.latitude - plannedPath.robot.latitude;
+	dlasty = plannedPath.lastTarget.longitude - plannedPath.robot.longitude;
 	lastDist = sqrt(dlastx*dlastx + dlasty*dlasty);
 	
 	// c = cos(heading);
@@ -105,8 +111,8 @@ void pathPlanningCallback(const ohm_igvc::planned_path::ConstPtr& plannedPath){
 	// cvar.front = dy*c + dx*s;
 	desiredAngle = adjust_angle(atan2(dx,dy), 2.0 * M_PI);
 
-	nx = -(plannedPath->currentTarget.longitude-plannedPath->lastTarget.longitude); // -Delta Y
-	ny =  (plannedPath->currentTarget.latitude-plannedPath->lastTarget.latitude); //  Delta X
+	nx = -(plannedPath.currentTarget.longitude-plannedPath.lastTarget.longitude); // -Delta Y
+	ny =  (plannedPath.currentTarget.latitude-plannedPath.lastTarget.latitude); //  Delta X
 	temp = hypot(nx, ny)+1e-3; // To avoid division by zero
 	nx /= temp;
 	ny /= temp;
@@ -148,18 +154,20 @@ int main(int argc, char **argv){
 	ros::NodeHandle n;
 
 	n.param("pid_target_threshold", targetThreshold, 5.0);
-	double targetChangeDelayParameter;
 	n.param("pid_target_change_delay", targetChangeDelayParameter, 0.0);
-	targetChangeDelay = ros::Rate(targetChangeDelayParameter);
 
 	feedbackPub = n.advertise<ohm_igvc::pid_feedback>("ohmPidFeedback", 5);
 	turnPub = n.advertise<geometry_msgs::Twist>("ohmPid", 5);
 
 	initPID();
 
-	ros::Subscriber pathPlanningSub = n.subscribe("pathPlanning", 5, pathPlanningCallback); //TODO: get name of pathPlanning topic
+	ros::Subscriber pathPlanningSub = n.subscribe("pathPlanning", 5, pathPlanningCallback);
 
-	ros::spin();
+	// ros::spin();
+	while(ros::ok()){
+		ros::spinOnce();
+		pid();
+	}
 	
 	return 0;
 }
