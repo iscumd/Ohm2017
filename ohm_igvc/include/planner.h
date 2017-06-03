@@ -4,7 +4,7 @@
 #include <ros/ros.h>
 #include <geometry_msgs/Pose2D.h>
 #include <ohm_igvc/waypoint.h>
-#include <ohm_igvc/successors.h>
+#include <ohm_igvc/get_successors.h>
 #include <ohm_igvc/cell_to_real.h>
 #include <ohm_igvc/real_to_cell.h>
 #include <ohm_igvc/coordinate_convert.h>
