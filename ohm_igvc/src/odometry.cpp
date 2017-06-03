@@ -8,12 +8,24 @@
 #include <string>
 #include <cmath>
 
+#define DEG2RAD(x) ((3.14159265359 * x) / 180.00)
+
 class odometry {
   public:
     odometry();
     void heading_callback(const vn300::Heading::ConstPtr &head);
     void position_callback(const vn300::Position::ConstPtr &pos);
     bool convert_callback(ohm_igvc::coordinate_convert::Request &rq, ohm_igvc::coordinate_convert::Response &rp);
+	double gps_x(double lon) { 
+		ROS_INFO("K_EW = %f", K_EW);
+		ROS_INFO("lon = %f", lon);
+		ROS_INFO("start lon = %f", origin.longitude);
+		return (K_EW * (lon - origin.longitude)); };
+	double gps_y(double lat) { 
+		ROS_INFO("K_NS = %f", K_NS);
+		ROS_INFO("lat = %f", lat);
+		ROS_INFO("start lat = %f", origin.latitude);
+		return (K_NS * (lat - origin.latitude)); };
 
   private:
     ros::Subscriber headingSub, positionSub;
@@ -21,7 +33,9 @@ class odometry {
     ros::ServiceServer coord_convert;
     ros::NodeHandle node;
     ohm_igvc::target origin;
-    // target msg: float64 latitude, float64 longitude
+
+    double K_NS, K_EW;
+
     geometry_msgs::Pose2D position;
     //origin - g
 };
@@ -29,11 +43,18 @@ class odometry {
 odometry::odometry() {
     std::string gps_heading = "/vn300/heading";
     std::string gps_position = "/vn300/position";
+	K_NS = 111120.00;
 
+	node.param("K_NS", K_NS, K_NS);
     node.param("origin_latitude", origin.latitude, 0.0);
     node.param("origin_longitude", origin.longitude, 0.0);
     node.param("gps_heading", gps_heading, gps_heading);
     node.param("gps_position", gps_position, gps_position);
+
+	K_EW = K_NS * std::cos(DEG2RAD(origin.latitude));
+
+	ROS_INFO("K_NS = %f", K_NS);
+	ROS_INFO("K_EW = %f", K_EW);
 
     headingSub = node.subscribe<vn300::Heading>(gps_heading, 5, &odometry::heading_callback, this);
     positionSub = node.subscribe<vn300::Position>(gps_position, 5, &odometry::position_callback, this);
@@ -53,15 +74,15 @@ void odometry::heading_callback(const vn300::Heading::ConstPtr &head) {
 }
 
 void odometry::position_callback(const vn300::Position::ConstPtr &pos) {
-    position.x = (pos->position[0] - origin.latitude);
-	position.y = (pos->position[1] - origin.longitude);
+    position.x = gps_x(pos->position[1]);
+	position.y = gps_y(pos->position[0]);
 	
 	pose.publish(position);
 }
 
 bool odometry::convert_callback(ohm_igvc::coordinate_convert::Request &rq, ohm_igvc::coordinate_convert::Response &rp) {
-	rp.coordinate.x = (rq.coordinate.latitude - origin.latitude);
-	rp.coordinate.y = (rq.coordinate.longitude - origin.longitude);
+	rp.coordinate.x = gps_x(rq.coordinate.longitude);
+	rp.coordinate.y = gps_y(rq.coordinate.latitude);
 
 	return true;
 }
