@@ -1,0 +1,4 @@
+geometry_msgs/Point real_coordinate
+---
+int32 x
+int32 y
