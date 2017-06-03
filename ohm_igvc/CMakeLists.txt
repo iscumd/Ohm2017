@@ -193,6 +193,9 @@ add_executable(obstacle_avoidance src/obstacle_avoidance.cpp src/lidarpoint.h sr
 add_dependencies(obstacle_avoidance ${PROJECT_NAME}_generate_messages_cpp)
 target_link_libraries(obstacle_avoidance ${catkin_LIBRARIES})
 
+add_executable(scan_to_xy src/scan_xy_node.cpp)
+add_dependencies(scan_to_xy ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(scan_to_xy ${catkin_LIBRARIES})
 
 #############
 ## Install ##
