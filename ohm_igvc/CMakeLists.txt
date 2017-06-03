@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(ohm_igvc)
 
+add_definitions(-std=c++11)
+
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
@@ -15,7 +17,7 @@ find_package(catkin REQUIRED COMPONENTS
 find_package(OpenCV 3 REQUIRED)
 
 ## System dependencies are found with CMake's conventions
-# find_package(Boost REQUIRED COMPONENTS system)
+#find_package(Boost REQUIRED)
 
 
 ## Uncomment this if the package has a setup.py. This macro ensures
@@ -50,6 +52,7 @@ find_package(OpenCV 3 REQUIRED)
 ## Generate messages in the 'msg' folder
 add_message_files(
   FILES
+  map_cell.msg
   location_point.msg
   pid_feedback.msg
   pixel_locations.msg
@@ -60,6 +63,10 @@ add_message_files(
 ## Generate services in the 'srv' folder
 add_service_files(
   FILES
+  cell_to_real.srv
+  get_successors.srv
+  real_to_cell.srv
+  robot_position.srv
   coordinate_convert.srv
   waypoint.srv
 )
@@ -76,6 +83,7 @@ generate_messages(
   DEPENDENCIES
   std_msgs
   isc_shared
+  sensor_msgs
   geometry_msgs
 )
 
@@ -121,7 +129,6 @@ catkin_package(
 
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
-# include_directories(include)
 include_directories(
   ${catkin_INCLUDE_DIRS}
   ${OpenCV_INCLUDE_DIRS}
@@ -173,6 +180,14 @@ target_link_libraries(waypoint_selection ${catkin_LIBRARIES})
 add_executable(white_line_detection src/white_line_detection.cpp)
 add_dependencies(white_line_detection ${PROJECT_NAME}_generate_messages_cpp)
 target_link_libraries(white_line_detection ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+add_executable(grid_map src/grid_map_node.cpp)
+add_dependencies(grid_map ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(grid_map ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+add_executable(path_planner src/planner_node.cpp)
+add_dependencies(path_planner ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(path_planner ${catkin_LIBRARIES})
 
 #############
 ## Install ##

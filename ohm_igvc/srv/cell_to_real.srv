@@ -1,4 +1,4 @@
 int32 x
 int32 y
 ---
-Point real_coordinate
+geometry_msgs/Point real_coordinate
