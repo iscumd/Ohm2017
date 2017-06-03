@@ -35,7 +35,7 @@ class grid_map {
 		void camera_update(const ohm_igvc::pixel_locations::ConstPtr &cam);
 		void odometry_update(const geometry_msgs::Pose2D::ConstPtr &odom); // 
 		void display_map(const ros::TimerEvent &e);
-
+		void save() { cv::imwrite("map_1.bmp", m_world); };
 	private:
 		bool successors_callback(ohm_igvc::get_successors::Request &rq, ohm_igvc::get_successors::Response &rp); // 
 		bool cell_to_real_callback(ohm_igvc::cell_to_real::Request &rq, ohm_igvc::cell_to_real::Response &rp); //
@@ -56,7 +56,7 @@ class grid_map {
 		geometry_msgs::Point raster_reference;
 
 		// occupancy
-		const int m_threshold;
+		int m_threshold;
 
 		ros::Subscriber camera_input, laser_input, odometry_input;
 		ros::ServiceServer successors, cell_to_real, real_to_cell, robot_position;
@@ -95,14 +95,15 @@ grid_map::grid_map(unsigned short threshold = 200) :
 	
 	// parameters
 	node.param("show_map", show_map, show_map);
-	node.param("odometry_topic", odom_topic, odom_topic);
-	node.param("laser_topic", laser_topic, laser_topic);
-	node.param("camera_topic", camera_topic, camera_topic);
-	node.param("raster_x", raster_reference.x, raster_reference.x);
-	node.param("raster_y", raster_reference.y, raster_reference.y);
-	node.param("resolution", m_resolution, m_resolution);
-	node.param("width", m_width, m_width);
-	node.param("height", m_height, m_height);
+	node.param("map_odometry_topic", odom_topic, odom_topic);
+	node.param("map_laser_topic", laser_topic, laser_topic);
+	node.param("map_camera_topic", camera_topic, camera_topic);
+	node.param("map_raster_x", raster_reference.x, raster_reference.x);
+	node.param("map_raster_y", raster_reference.y, raster_reference.y);
+	node.param("map_threshold", m_threshold, m_threshold);
+	node.param("map_resolution", m_resolution, m_resolution);
+	node.param("map_width", m_width, m_width);
+	node.param("map_height", m_height, m_height);
 
 	m_grid_x = (m_width / m_resolution);
 	m_grid_y = (m_height / m_resolution);
@@ -129,14 +130,21 @@ void grid_map::laser_scan_update(const sensor_msgs::LaserScan::ConstPtr &scan) {
 		if(scan->ranges[point] < scan->range_max && scan->ranges[point] > scan->range_min) {
 			double ax = (scan->ranges[point] * std::sin((scan->angle_increment * point) + odometry.theta)) + odometry.x;
 			double ay = (scan->ranges[point] * std::cos((scan->angle_increment * point) + odometry.theta)) + odometry.y;
-				
+
 			int i = (ax - raster_reference.x) / m_resolution;
 			int j = (ay + raster_reference.y) / m_resolution;
+
+			// ROS_INFO("Point at (%d, %d)", i, j);
 
 			if(i > m_world.cols || i < 0) continue;
 			if(j > m_world.rows || j < 0) continue;
 			
-			if(m_world.ptr<short>(j)[i] < m_threshold) m_world.ptr<short>(j)[i]++;
+			if(m_world.ptr<short>(j)[i] < m_threshold) {
+				ROS_INFO("incrementing (%d, %d)", i, j);	
+				m_world.ptr<short>(j)[i]++;
+			} else {
+				ROS_INFO("cell (%d, %d) has saturated to threshold %d", i, j, m_threshold);
+			}
 		}
 	}
 }
@@ -145,8 +153,6 @@ void grid_map::point_cloud_update(const sensor_msgs::PointCloud::ConstPtr &point
 	for(int point = 0; point < points->points.size(); point++) {
 		int i = ((points->points[point].x) - raster_reference.x) / m_resolution;
 		int j = ((points->points[point].y) + raster_reference.y) / m_resolution;
-
-		// ROS_INFO("Point at (%d, %d)", i, j);
 
 		if(i > m_world.cols || i < 0) continue;
 		if(j > m_world.rows || j < 0) continue;
@@ -175,7 +181,8 @@ void grid_map::odometry_update(const geometry_msgs::Pose2D::ConstPtr &odom) {
 }
 
 void grid_map::display_map(const ros::TimerEvent &e) {
-	imshow("Map", m_world);
+	cv::imshow("Map", m_world);
+	cv::waitKey(10);
 }
 
 bool grid_map::cell_to_real_callback(ohm_igvc::cell_to_real::Request &rq, ohm_igvc::cell_to_real::Response &rp) {
@@ -263,6 +270,8 @@ int main(int argc, char **argv) {
 	grid_map world;
 
 	ros::spin();
+
+	world.save();
 
 	return 0;
 }

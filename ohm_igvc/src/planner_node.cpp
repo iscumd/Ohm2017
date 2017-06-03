@@ -37,7 +37,7 @@ class Planner {
     public:
         Planner(); // 
         std::vector<geometry_msgs::Pose2D> plan(int x, int y); // 
-		void get_next_waypoint(int i); // 
+		bool get_next_waypoint(int i); // 
 		int get_robot_x() { return robot_position.x; };
 		int get_robot_y() { return robot_position.y; };
 		int get_goal_x() { return goal.x; };
@@ -168,28 +168,30 @@ std::vector<geometry_msgs::Pose2D> Planner::plan(int x, int y) {
 	return final_path;
 }
 
-void Planner::get_next_waypoint(int i) {
+bool Planner::get_next_waypoint(int i) {
 	ohm_igvc::waypoint req_wp;
 	ohm_igvc::coordinate_convert req_conv;
 	ohm_igvc::real_to_cell req_cell;
 
 	req_wp.request.ID = i;
 	
-	waypoint_service.call(req_wp);
+	if(!waypoint_service.call(req_wp)) return false;
 
 	req_conv.request.coordinate.latitude = req_wp.response.waypoint.latitude;
 	req_conv.request.coordinate.longitude = req_wp.response.waypoint.longitude;
 
 
-	coord_convert.call(req_conv);
+	if(!coord_convert.call(req_conv)) return false;
 
 	req_cell.request.real_coordinate.x = req_conv.response.coordinate.x;
 	req_cell.request.real_coordinate.y = req_conv.response.coordinate.y;
 
-	map_world_to_cell.call(req_cell);
+	if(!map_world_to_cell.call(req_cell)) return false;
 
 	goal.x = req_cell.response.x;
 	goal.y = req_cell.response.y;
+
+	return true;
 }
 
 std::array<Node, 8> Planner::get_successors(int x, int y, Node &parent) {
@@ -293,7 +295,7 @@ int main(int argc, char **argv) {
 				desired_speed.publish(speed);
 
 				waypoint_id++;
-				planner.get_next_waypoint(waypoint_id);
+				if(!planner.get_next_waypoint(waypoint_id)) break;
 			}
 			
 			current_path = planner.plan(planner.get_robot_x(), planner.get_robot_y());
@@ -316,7 +318,7 @@ int main(int argc, char **argv) {
 				desired_speed.publish(speed);
 
 				waypoint_id++;
-				planner.get_next_waypoint(waypoint_id);
+				if(!planner.get_next_waypoint(waypoint_id)) break;
 
 				current_path = planner.plan(planner.get_robot_x(), planner.get_robot_y());
 				geometry_msgs::Point p = planner.get_robot_real_position();

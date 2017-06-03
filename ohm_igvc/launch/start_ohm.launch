@@ -74,6 +74,7 @@
 	<param name="width" value="100" />
 	<param name="height" value="100" />
 	<node pkg="ohm_igvc" type="grid_map" name="grid_map" output="screen"/>
+
 	<!-- Path Planning -->
 	<param name="planning_threshold" value="10.0" />
 	<param name="hit_threshold" value="2.5" />
