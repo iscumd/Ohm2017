@@ -6,16 +6,19 @@
 	<param name="pid_target_threshold" value="5.0" />
 	<param name="pid_target_change_delay" value="0.0" />
 	<node pkg="ohm_igvc" type="ohm_pid" name="ohm_pid" output="screen"/>
+
 	<param name="obstacleOverrideDurationMillis" value="1000.0" />
-	<node pkg="ohm_igvc" type="auto_control_logic" name="auto_control_logic" output="screen"/>
+	<node pkg="ohm_igvc" type="auto_control_logic" name="auto_control_logic"/>
 
 	<node pkg="joy" type="joy_node" name="joy_node" />
 	<node pkg="isc_shared" type="joystick" name="joystick"/>
+	<param name="manual_control_speed_multiplier" value="0.5" />
+	<param name="manual_control_turn_multiplier" value="0.5" />
 	<node pkg="isc_shared" type="manual_control" name="manual_control"/>
 	
 	<param name="arduino_serial_port" value="/dev/ttyACM0" />
 	<node pkg="ohm_igvc" type="ohm_drive_mode_control" name="ohm_drive_mode_control" output="screen"/>
 
 	<param name="serial_port" value="/dev/ttyUSB0" />
-	<node pkg="isc_shared" type="roboteq_nextgen" name="roboteq_nextgen"/>
+	<node pkg="isc_shared" type="roboteq_nextgen" name="roboteq_nextgen" output="screen"/>
 </launch>
