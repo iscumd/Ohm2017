@@ -2,6 +2,7 @@
 #include "geometry_msgs/Twist.h"
 #include "isc_shared/joystick.h"
 #include "isc_shared/wheel_speeds.h"
+#include "ohm_igvc/drive_mode.h"
 
 #include <serial/serial.h>
 #include <sstream>
@@ -10,6 +11,8 @@
 using std::string;
 using std::stringstream;
 using serial::Serial;
+
+ros::Publisher driveModePub;
 
 bool startButtonDown = false;
 bool autoMode = false;
@@ -56,11 +59,17 @@ void updateDriveMode(){
 	ROS_INFO("Drive Mode Control: Switching to %s mode.", autoMode ? "AUTO" : "MANUAL");
 	if(autoMode){
 		arduinoSendCommand("A");
-		ros::param::set("/drive_mode", "auto");
+		// ros::param::set("/drive_mode", "auto");
+		ohm_igvc::drive_mode msg;
+		msg.mode = "auto";
+		driveModePub.publish(msg);
 	}
 	else {
 		arduinoSendCommand("M");
-		ros::param::set("/drive_mode", "manual");
+		// ros::param::set("/drive_mode", "manual");
+		ohm_igvc::drive_mode msg;
+		msg.mode = "manual";
+		driveModePub.publish(msg);
 	}
 }
 
@@ -125,9 +134,10 @@ int main(int argc, char **argv){
 	n.param("arduino_serial_port", arduinoPort, std::string("/dev/ttyACM0"));
 	arduinoConnect();
 
-	updateDriveMode();
-
+	driveModePub = n.advertise<ohm_igvc::drive_mode>("drive_mode", 1000);
 	wheelSpeedPub = n.advertise<isc_shared::wheel_speeds>("wheelSpeeds", 5);
+
+	updateDriveMode();
 
 	ros::Subscriber joystickSub = n.subscribe("joystick", 5, joystickCallback);
 	ros::Subscriber manualSub = n.subscribe("manualControl", 5, manualCallback);
