@@ -42,6 +42,7 @@ void arduinoConnect(){
 	arduinoSerialPort->setTimeout(to);
 
 	arduinoSerialPort->open();
+	ROS_INFO("Connected to Arduino.");
 }
 
 void arduinoSendCommand(string command){
@@ -50,6 +51,7 @@ void arduinoSendCommand(string command){
 }
 
 void updateDriveMode(){
+	ROS_INFO("Drive Mode Control: Switching to %s mode.", autoMode ? "AUTO" : "MANUAL");
 	if(autoMode){
 		arduinoSendCommand("A");
 		ros::param::set("/drive_mode", "auto");
@@ -75,7 +77,6 @@ void joystickCallback(const isc_shared::joystick::ConstPtr& joy){
 		startButtonDown = false;
 		autoMode = !autoMode;
 		updateDriveMode();
-		ROS_INFO("Drive Mode Control: Switching to %s mode.", autoMode ? "AUTO" : "MANUAL");
 	}
 }
 
@@ -94,7 +95,7 @@ void manualCallback(const geometry_msgs::Twist::ConstPtr& msg){
 }
 
 void autoCallback(const geometry_msgs::Twist::ConstPtr& msg){
-	if(!autoMode){
+	if(autoMode){
 		float leftWheelSpeed = 0.0, rightWheelSpeed = 0.0;
 
 		leftWheelSpeed = (msg->linear.x - msg->angular.z);
