@@ -59,7 +59,7 @@ class Planner {
 		double robot_theta;
 		int robot_x, robot_y;
 
-		double child_angle[8];
+		double child_angle[8] = {-45.0, 0.0, 45.0, 90.0, 135.0, 180.0, 225.0, 270.0};
 
 		Node goal;
 		Node last_in_path;
@@ -148,16 +148,18 @@ std::vector<geometry_msgs::Pose2D> Planner::plan(int x, int y) {
 
 	for(Node *n = &last_q; n->parent != nullptr; n = n->parent) { path.push_back(*n); }
 	
-	for(auto current = path.rbegin(), next = path.rbegin() + 1; next != path.rend(); ++current, ++next) {
-		if(angular_distance(child_angle[current->which_child], child_angle[next->which_child]) >= 90.0) {
-			geometry_msgs::Pose2D waypoint;
-			geometry_msgs::Point real_coord = cell_to_world(current->x, current->y);
+	if(path.size() > 0) {
+		for(auto current = path.rbegin(), next = path.rbegin() + 1; next != path.rend(); ++current, ++next) {
+			if(angular_distance(child_angle[current->which_child], child_angle[next->which_child]) >= 90.0) {
+				geometry_msgs::Pose2D waypoint;
+				geometry_msgs::Point real_coord = cell_to_world(current->x, current->y);
 
-			waypoint.x = real_coord.x;
-			waypoint.y = real_coord.y;
-			waypoint.theta = child_angle[current->which_child];
+				waypoint.x = real_coord.x;
+				waypoint.y = real_coord.y;
+				waypoint.theta = child_angle[current->which_child];
 
-			final_path.push_back(waypoint);
+				final_path.push_back(waypoint);
+			}
 		}
 	}
 
@@ -276,6 +278,8 @@ int main(int argc, char **argv) {
 	std::vector<geometry_msgs::Pose2D> current_path, next_path;
 	ohm_igvc::planned_path pid_path;
 	pid_path.dir = 1;
+
+	planner.get_next_waypoint(waypoint_id);
 
 	while(ros::ok()) {
 		ros::spinOnce();
