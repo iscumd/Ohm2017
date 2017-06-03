@@ -3,7 +3,9 @@
 #include <iostream>
 #include <string>
 #include <sstream>
+#include "geometry_msgs/Pose2D.h"
 #include "geometry_msgs/Twist.h"
+#include "sensor_msgs/LaserScan.h"
 #include <vector>
 #include <math.h>  
 #include "lidarpoint.h"
@@ -11,9 +13,9 @@
 using namespace std;
 
 //Global variables
-ros::Publisher autoControlLogicPublisher = n.advertise<geometry_msgs::Twist>("direction", 1000)
-ros::Publisher globalMappingPublisher = n.advertise<geometry_msgs::Twist>("obstacles", 1000)
-float[] lidarData;
+ros::Publisher autoControlLogicPublisher;
+// ros::Publisher globalMappingPublisher = n.advertise<geometry_msgs::Twist>("obstacles", 1000);
+vector<float> lidarData;
 double theta;
 vector<LidarPoint> lidarpoints;
 vector<Obstacle> obstacles;
@@ -29,33 +31,32 @@ int sumOfPoints;
 int obsSizeNum;
 bool isAlreadyLinking = false;
 bool isThereAnObstacle = false;
-
-//Callback Functions
-void lidarPointsCallback(const sensor_msgs::LaserScan::ConstPtr& msg)
-{
-    lidarPoints = msg->ranges;
-    theta = msg->angle_increment;
-
-    convertAllPointsToCartesian();
-    obstacleDetection();
-}
+double obstacleStopThreshold;
+geometry_msgs::Pose2D robotDetectedDangerPosition;
+geometry_msgs::Pose2D robotCurrentPosition;
+double backupDistance;
 
 //Computing Functions
+void clearState()
+{
+    sumOfPoints = 0;
+    linkedCount = 0;
+    isThereAnObstacle = false;
+}
+
 void convertAllPointsToCartesian()
 {
-    int size = *(&lidarpoints + 1) - lidarpoints;
-
     double x = 0;
     double y = 0;
-    double distaceFromRobot = 0;
+    double distanceFromRobot = 0;
 
-    for(int i = 0; i < size; i++ )
+    for(int i = 0; i < lidarData.size(); i++ )
     {
         x = cos(theta) * lidarData[i];
         y = sin(theta) * lidarData[i];
         distanceFromRobot = lidarData[i];
 
-        LidarPoint  newPoint = new LidarPoint(x, y)
+        LidarPoint newPoint(x, y);
         lidarpoints.push_back(newPoint);
         x = 0;
         y = 0;
@@ -68,14 +69,14 @@ double distanceCalculator(LidarPoint lidarPoint1, LidarPoint lidarPoint2)
 void linkPoint(double currPointDist, double twoPointsDist)
 {
     linkedCount += 1;
-    sum += currPointDist;
+    sumOfPoints += currPointDist;
     obsSizeNum += twoPointsDist;
 }
 void addAndAnalyzeObstacle(int value, Obstacle& obstacle)
 {
     double index = (value - linkedCount) / 2;
     double mag = sumOfPoints / linkedCount;
-    bool isOutsideTheField = false;
+    // bool isOutsideTheField = false;
 
     obstacle.x = mag * cos(theta);
     obstacle.y = mag * sin(theta);
@@ -86,13 +87,13 @@ void addAndAnalyzeObstacle(int value, Obstacle& obstacle)
     }
     else
     {
-        if(obstacle.x > 4.75 || obstacle.x < -1.750 || obstacle.y > 11.75 || obstacle.y < -2.75)// Needs to be rechecked
-        {
-            isOutsideTheField = true;
-        }
-        if(!isOutsideTheField)
-        {
-            if(mag <= 5) //if there is a close obstacle
+        // if(obstacle.x > 4.75 || obstacle.x < -1.750 || obstacle.y > 11.75 || obstacle.y < -2.75)// Needs to be rechecked
+        // {
+        //     isOutsideTheField = true;
+        // }
+        // if(!isOutsideTheField)
+        // {
+            if(mag <= obstacleStopThreshold) //if there is a close obstacle, in meters
             {
                 isThereAnObstacle = true;
                 ROS_INFO("Obstacle detected");
@@ -101,32 +102,28 @@ void addAndAnalyzeObstacle(int value, Obstacle& obstacle)
             {
                 clearState();
             }
-        }
+        // }
     }
 }
-void clearState()
-{
-    sumOfPoints = 0;
-    linkedCount = 0;
-    isThereAnObstacle = false;
-}
+
 void obstacleDetection()
 {
+    int j;
     for(int i = 360; i < lidarpoints.size() - 361; i++)
     {
-        auto currentPoint = lidarpoints[count];
+        auto currentPoint = lidarpoints[i];
         bool isPointLinked = false;
         Obstacle obstacle;
 
-        if(currentPoint < maxRadius)
+        if(currentPoint.distanceFromRobot < maxRadius)
         {
-            for(int j = 0; j <= forgiveCount; j++ )
+            for(j = 1; j <= forgiveCount; j++ )
             {
                 auto nextPoint = lidarpoints[i + 1];
                 double pointsDistance = distanceCalculator(currentPoint, nextPoint);
                 if(pointsDistance < nonSeparationThresh * j * MM2M)
                 {
-                    linkPoint(currentPoint.distanceFromRobot, pointsDistance)
+                    linkPoint(currentPoint.distanceFromRobot, pointsDistance);
                     isPointLinked = true;
                     if(!isAlreadyLinking)
                     { 
@@ -142,7 +139,7 @@ void obstacleDetection()
             if(isAlreadyLinking)
             {
                 obstacle.objEndIndex = i;
-                addAndAnalyzeObstacle(i, obstacle)
+                addAndAnalyzeObstacle(i, obstacle);
             }
             isAlreadyLinking = false;
             clearState();
@@ -160,26 +157,48 @@ void obstacleDetection()
     }
 }
 
+//Callback Functions
+void lidarPointsCallback(const sensor_msgs::LaserScan::ConstPtr& msg)
+{
+    lidarData = msg->ranges;
+    theta = msg->angle_increment;
+
+    convertAllPointsToCartesian();
+    obstacleDetection();
+}
+
+void odometryCallback(const geometry_msgs::Pose2D::ConstPtr& msg)
+{
+    robotCurrentPosition = *msg;
+}
 
 int main(int argc, char **argv)
 {
     ros::init(argc, argv, "obstacle_avoidance");
-    bool keepMoving;
+    // bool keepMoving;
     
     ros::NodeHandle n;
-    ros::Subscriber obstacle_avoidance_sub = n.subscribe("lidar_points", 1000, lidarPointsCallback)
+    n.param("obstacle_avoidance_obstacle_stop_threshold", obstacleStopThreshold, 3.0);
+    n.param("obstacle_avoidance_backup_distance", backupDistance, 1.0);
+    autoControlLogicPublisher = n.advertise<geometry_msgs::Twist>("direction", 1000);
+    ros::Subscriber lidarSub = n.subscribe("scan", 3, lidarPointsCallback);
+    ros::Subscriber odometrySub = n.subscribe("/ohm/odom", 3, odometryCallback);
 
     while(ros::ok())
     {
-        geometry::Twist msg;
 
         if(isThereAnObstacle)
         {
-            msg.linear.x = 0;
-            msg.angular.y = 0;
-        }
+            double deltaDistance = sqrt(pow((robotCurrentPosition.x - robotDetectedDangerPosition.x), 2)- pow((robotCurrentPosition.y - robotDetectedDangerPosition.y), 2));
+            while(ros::ok() && deltaDistance < backupDistance){
+                geometry_msgs::Twist msg;
 
-        autoControlLogicPublisher.publish(msg);
+                msg.linear.x = -0.5;
+                msg.angular.y = 0;
+
+                autoControlLogicPublisher.publish(msg);
+            }
+        }
     }
 
     ros::spin();
