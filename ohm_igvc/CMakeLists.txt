@@ -52,6 +52,7 @@ find_package(OpenCV 3 REQUIRED)
 ## Generate messages in the 'msg' folder
 add_message_files(
   FILES
+  drive_mode.msg
   map_cell.msg
   location_point.msg
   pid_feedback.msg
