@@ -89,13 +89,14 @@ grid_map::grid_map(unsigned short threshold = 200) :
 	m_threshold(threshold)
  {
 
-	bool show_map = false;
+	bool show_map = false, use_pcl = true;
 	std::string odom_topic = "/ohm/odom", laser_topic = "/ohm/laser", camera_topic = "/ohm/eyes";
 	raster_reference.x = 0.0; raster_reference.y = 0.0;
 	
 	// parameters
 	node.param("show_map", show_map, show_map);
 	node.param("map_odometry_topic", odom_topic, odom_topic);
+	node.param("map_use_pcl", use_pcl, use_pcl);
 	node.param("map_laser_topic", laser_topic, laser_topic);
 	node.param("map_camera_topic", camera_topic, camera_topic);
 	node.param("map_raster_x", raster_reference.x, raster_reference.x);
@@ -109,7 +110,9 @@ grid_map::grid_map(unsigned short threshold = 200) :
 	m_grid_y = (m_height / m_resolution);
 
 	camera_input = node.subscribe<ohm_igvc::pixel_locations>(camera_topic, 3, &grid_map::camera_update, this);
-	laser_input = node.subscribe<sensor_msgs::LaserScan>(laser_topic, 3, &grid_map::laser_scan_update, this);
+
+	if(use_pcl) laser_input = node.subscribe<sensor_msgs::PointCloud>(laser_topic, 3, &grid_map::point_cloud_update, this);
+	else laser_input = node.subscribe<sensor_msgs::LaserScan>(laser_topic, 3, &grid_map::laser_scan_update, this);
 	odometry_input = node.subscribe<geometry_msgs::Pose2D>(odom_topic, 3, &grid_map::odometry_update, this);
 
 	successors = node.advertiseService("get_successors", &grid_map::successors_callback, this);
@@ -151,8 +154,11 @@ void grid_map::laser_scan_update(const sensor_msgs::LaserScan::ConstPtr &scan) {
 
 void grid_map::point_cloud_update(const sensor_msgs::PointCloud::ConstPtr &points) {
 	for(int point = 0; point < points->points.size(); point++) {
-		int i = ((points->points[point].x) - raster_reference.x) / m_resolution;
-		int j = ((points->points[point].y) + raster_reference.y) / m_resolution;
+		double cos_heading = std::cos(odometry.theta), sin_heading = std::sin(odometry.theta);
+		float x_prime = points->points[point].x, y_prime = points->points[point].y;
+
+		int i = ((odometry.x + ((x_prime * cos_heading) - (y_prime * sin_heading))) - raster_reference.x) / m_resolution;
+		int j = ((odometry.y + ((y_prime * cos_heading) + (x_prime * sin_heading))) + raster_reference.y) / m_resolution;
 
 		if(i > m_world.cols || i < 0) continue;
 		if(j > m_world.rows || j < 0) continue;

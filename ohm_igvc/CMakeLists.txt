@@ -189,6 +189,10 @@ add_executable(path_planner src/planner_node.cpp)
 add_dependencies(path_planner ${PROJECT_NAME}_generate_messages_cpp)
 target_link_libraries(path_planner ${catkin_LIBRARIES})
 
+add_executable(scan_to_xy src/scan_xy_node.cpp)
+add_dependencies(scan_to_xy ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(scan_to_xy ${catkin_LIBRARIES})
+
 #############
 ## Install ##
 #############
