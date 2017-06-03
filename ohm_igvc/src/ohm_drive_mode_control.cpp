@@ -15,6 +15,8 @@ bool startButtonDown = false;
 bool autoMode = false;
 ros::Publisher wheelSpeedPub;
 
+int speedBoostButton = false; //mike added this 6/3
+
 std::string arduinoPort;
 serial::Serial *arduinoSerialPort;
 
@@ -78,14 +80,21 @@ void joystickCallback(const isc_shared::joystick::ConstPtr& joy){
 		autoMode = !autoMode;
 		updateDriveMode();
 	}
+	speedBoostButton = joy->LS;//mike added this 6/3
 }
 
 void manualCallback(const geometry_msgs::Twist::ConstPtr& msg){
 	if(!autoMode){
 		float leftWheelSpeed = 0.0, rightWheelSpeed = 0.0;
 
-		leftWheelSpeed = (msg->linear.x - msg->angular.z);
-		rightWheelSpeed = (msg->linear.x + msg->angular.z);
+		if(speedBoostButton){
+            leftWheelSpeed = (msg->linear.x - msg->angular.z);
+            rightWheelSpeed = (msg->linear.x + msg->angular.z);
+        }
+		else{
+            leftWheelSpeed = (msg->linear.x - msg->angular.z)/2;
+            rightWheelSpeed = (msg->linear.x + msg->angular.z)/2;
+        }
 
 		isc_shared::wheel_speeds msg;
 		msg.left = leftWheelSpeed;
