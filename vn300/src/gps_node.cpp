@@ -140,7 +140,7 @@ void vn300_packet_handler(void *userdata, vn::protocol::uart::Packet &p, size_t 
 	vn300_node *obj = (vn300_node *)userdata; // nasty, but it'll do
 
 	if(p.type() == Packet::TYPE_BINARY) {
-		ROS_INFO_THROTTLE(2, "Binary packet recevied");
+		//ROS_INFO_THROTTLE(2, "Binary packet recevied");
 		if(p.isCompatible(COMMONGROUP_YAWPITCHROLL, TIMEGROUP_NONE, IMUGROUP_NONE, GPSGROUP_NONE, ATTITUDEGROUP_YPRU, INSGROUP_NONE)) {	
 			// p is a heading packet
 			vn300::Heading msg;
@@ -204,10 +204,10 @@ void vn300_packet_handler(void *userdata, vn::protocol::uart::Packet &p, size_t 
 			obj->workers.AddJob(boost::bind(&vn300_node::publish_status_wrapper, obj, msg));
 			
 		} else {
-			ROS_INFO("Unknown packet found");
+			//ROS_INFO("Unknown packet found");
 		}
 	} else {
-		ROS_DEBUG("Ascii packet received");
+		//ROS_DEBUG("Ascii packet received");
 	}
 }
 
