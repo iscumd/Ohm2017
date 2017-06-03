@@ -16,8 +16,16 @@ class odometry {
     void heading_callback(const vn300::Heading::ConstPtr &head);
     void position_callback(const vn300::Position::ConstPtr &pos);
     bool convert_callback(ohm_igvc::coordinate_convert::Request &rq, ohm_igvc::coordinate_convert::Response &rp);
-	double gps_x(double lon) { return (K_EW * (lon - origin.longitude)); };
-	double gps_y(double lat) { return (K_NS * (lat - origin.latitude)); };
+	double gps_x(double lon) { 
+		ROS_INFO("K_EW = %f", K_EW);
+		ROS_INFO("lon = %f", lon);
+		ROS_INFO("start lon = %f", origin.longitude);
+		return (K_EW * (lon - origin.longitude)); };
+	double gps_y(double lat) { 
+		ROS_INFO("K_NS = %f", K_NS);
+		ROS_INFO("lat = %f", lat);
+		ROS_INFO("start lat = %f", origin.latitude);
+		return (K_NS * (lat - origin.latitude)); };
 
   private:
     ros::Subscriber headingSub, positionSub;
@@ -45,6 +53,9 @@ odometry::odometry() {
 
 	K_EW = K_NS * std::cos(DEG2RAD(origin.latitude));
 
+	ROS_INFO("K_NS = %f", K_NS);
+	ROS_INFO("K_EW = %f", K_EW);
+
     headingSub = node.subscribe<vn300::Heading>(gps_heading, 5, &odometry::heading_callback, this);
     positionSub = node.subscribe<vn300::Position>(gps_position, 5, &odometry::position_callback, this);
 
@@ -63,15 +74,15 @@ void odometry::heading_callback(const vn300::Heading::ConstPtr &head) {
 }
 
 void odometry::position_callback(const vn300::Position::ConstPtr &pos) {
-    position.x = gps_x(pos->position[0]);
-	position.y = gps_y(pos->position[1]);
+    position.x = gps_x(pos->position[1]);
+	position.y = gps_y(pos->position[0]);
 	
 	pose.publish(position);
 }
 
 bool odometry::convert_callback(ohm_igvc::coordinate_convert::Request &rq, ohm_igvc::coordinate_convert::Response &rp) {
-	rp.coordinate.x = gps_x(rq.coordinate.latitude);
-	rp.coordinate.y = gps_y(rq.coordinate.longitude);
+	rp.coordinate.x = gps_x(rq.coordinate.longitude);
+	rp.coordinate.y = gps_y(rq.coordinate.latitude);
 
 	return true;
 }
