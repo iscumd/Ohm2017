@@ -69,7 +69,23 @@
 	<node pkg="isc_shared" type="roboteq_nextgen" name="roboteq_nextgen" output="screen"/>
 
 	<!-- Mapping -->
-	<node pkg="ohm_igvc" type="grid_map" name="grid_map" output="screen"/>
+	<param name="show_map" value="false" />
+	<param name="map_odometry_topic" value="/ohm/pose" />
+	<param name="map_use_pcl" value="true" />
+	<param name="map_laser_topic" value="/ohm/point_cloud" />
+	<param name="map_raster_x" value="-32.949" />
+	<param name="map_raster_y" value="27.215" />
+	<param name="map_threshold" value="65" />
+	<param name="map_resolution" value="0.2" />
+	<param name="map_width" value="200" />
+	<param name="map_height" value="200" />
+	<node pkg="ohm_igvc" type="grid_map" name="grid_map" output="screen" />
+
 	<!-- Path Planning -->
-	<node pkg="ohm_igvc" type="path_planner" name="path_planner" output="screen"/>
+	<param name="planning_threshold" value="10.0" />
+	<param name="hit_threshold" value="2.5" />
+	<node pkg="ohm_igvc" type="path_planner" name="path_planner" output="screen" />
+
+	<!-- LaserScan Conversion -->
+	<node pkg="ohm_igvc" type="scan_to_xy" name="scan_to_xy" output="screen" />
 </launch>
