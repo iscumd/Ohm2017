@@ -1,24 +1,70 @@
 <launch>
+	<!-- calibration constants-->
+	<param name="white_line_detection_A" value="0.0574766" />
+    <param name="white_line_detection_B" value="-3.109" />
+    <param name="white_line_detection_C" value="-0.0565714" />
+    <param name="white_line_detection_D" value="5.1699" />
+    <!-- sampling freq -->
+    <param name="white_line_detection_sampleEvery" value="1" />
+    <!-- ratio -->
+    <param name="white_line_detection_ratio" value="1.3333" />
+    <!--0 is laptop cam, 1 is external-->
+    <param name="white_line_detection_camSelect" value="1" />
+    <!-- Pixel coordinates go here -->
+    <param name="white_line_detection_topLeftXpix" value="262.8" />
+    <param name="white_line_detection_topLeftYpix" value="192.6" />
+    <param name="white_line_detection_topRightXpix" value="413.6" />
+    <param name="white_line_detection_topRightYpix" value="192.6" />
+    <param name="white_line_detection_bottomRightXpix" value="437.6" />
+    <param name="white_line_detection_bottomRightYpix" value="270.1" />
+    <param name="white_line_detection_bottomLeftXpix" value="235.5" />
+    <param name="white_line_detection_bottomLeftYpix" value="270.8" />
+    <!-- Enable recording -->
+    <param name="white_line_detection_enableRecording" value="false" />
+    <!-- Enable drawing -->
+    <param name="white_line_detection_enableDrawing" value="false" />
+	<!-- Camera node -->
+	<node pkg="ohm_igvc" type="white_line_detection" name="white_line_detection" output="screen"/>
 
+	<!-- LiDAR -->
+	<arg name="host" default="192.168.0.100" />
+	<node pkg="isc_sick" name="isc_sick" type="LMS1xx_node">
+		<param name="host" value="$(arg host)" />
+	</node>
+
+	<!-- GPS -->
+	<node pkg="vn300" type="vn300_node" name="vn300_node" output="screen" />
+
+	<!-- Waypoint Service -->
 	<param name="navigationFile" value="$(find ohm_igvc)/data/qualification.txt" />
-	<node name="waypoint_selection" pkg="ohm_igvc" type="waypoint_selection" output="screen" />
+	<node pkg="ohm_igvc" type="waypoint_selection" name="waypoint_selection" output="screen" />
 
+	<!-- PID -->
 	<param name="pid_target_threshold" value="5.0" />
 	<param name="pid_target_change_delay" value="0.0" />
 	<node pkg="ohm_igvc" type="ohm_pid" name="ohm_pid" output="screen"/>
 
+	<!-- Auto Control Logic -->
 	<param name="obstacleOverrideDurationMillis" value="1000.0" />
 	<node pkg="ohm_igvc" type="auto_control_logic" name="auto_control_logic"/>
 
+	<!-- Joystick -->
 	<node pkg="joy" type="joy_node" name="joy_node" />
 	<node pkg="isc_shared" type="joystick" name="joystick"/>
 	<param name="manual_control_speed_multiplier" value="0.5" />
 	<param name="manual_control_turn_multiplier" value="0.5" />
 	<node pkg="isc_shared" type="manual_control" name="manual_control"/>
 	
+	<!-- Drive Mode Control -->
 	<param name="arduino_serial_port" value="/dev/ttyACM0" />
 	<node pkg="ohm_igvc" type="ohm_drive_mode_control" name="ohm_drive_mode_control" output="screen"/>
 
+	<!-- Roboteq -->
 	<param name="serial_port" value="/dev/ttyUSB0" />
 	<node pkg="isc_shared" type="roboteq_nextgen" name="roboteq_nextgen" output="screen"/>
+
+	<!-- Mapping -->
+	<node pkg="ohm_igvc" type="grid_map" name="grid_map" output="screen"/>
+	<!-- Path Planning -->
+	<node pkg="ohm_igvc" type="path_planner" name="path_planner" output="screen"/>
 </launch>

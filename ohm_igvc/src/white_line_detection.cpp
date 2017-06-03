@@ -6,8 +6,8 @@
 #include <ros/ros.h>
 #include "geometry_msgs/Point32.h"
 #include "ohm_igvc/pixel_locations.h"
-#define timeStart start = clock();
-#define timeEnd cout << "time: " << (clock() - start) / (double)(CLOCKS_PER_SEC / 1000) << "ms" << endl;
+#define timeStart //start = clock();
+#define timeEnd //cout << "time: " << (clock() - start) / (double)(CLOCKS_PER_SEC / 1000) << "ms" << endl;
 
 using namespace std;
 using namespace cv;

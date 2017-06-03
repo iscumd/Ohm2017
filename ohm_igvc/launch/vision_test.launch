@@ -1,9 +1,9 @@
 <launch>
     <!-- calibration constants-->
-	<param name="white_line_detection_A" value="0.0585714" />
-    <param name="white_line_detection_B" value="-2.987" />
-    <param name="white_line_detection_C" value="-0.0415" />
-    <param name="white_line_detection_D" value="4.551" />
+	<param name="white_line_detection_A" value="0.0574766" />
+    <param name="white_line_detection_B" value="-3.109" />
+    <param name="white_line_detection_C" value="-0.0565714" />
+    <param name="white_line_detection_D" value="5.1699" />
 
     <!-- sampling freq -->
     <param name="white_line_detection_sampleEvery" value="1" />
@@ -15,14 +15,14 @@
     <param name="white_line_detection_camSelect" value="1" />
     
     <!-- Pixel coordinates go here -->
-    <param name="white_line_detection_topLeftXpix" value="247" />
-    <param name="white_line_detection_topLeftYpix" value="218" />
-    <param name="white_line_detection_topRightXpix" value="393" />
-    <param name="white_line_detection_topRightYpix" value="216" />
-    <param name="white_line_detection_bottomRightXpix" value="419" />
-    <param name="white_line_detection_bottomRightYpix" value="290" />
-    <param name="white_line_detection_bottomLeftXpix" value="224" />
-    <param name="white_line_detection_bottomLeftYpix" value="295" />
+    <param name="white_line_detection_topLeftXpix" value="262.8" />
+    <param name="white_line_detection_topLeftYpix" value="192.6" />
+    <param name="white_line_detection_topRightXpix" value="413.6" />
+    <param name="white_line_detection_topRightYpix" value="192.6" />
+    <param name="white_line_detection_bottomRightXpix" value="437.6" />
+    <param name="white_line_detection_bottomRightYpix" value="270.1" />
+    <param name="white_line_detection_bottomLeftXpix" value="235.5" />
+    <param name="white_line_detection_bottomLeftYpix" value="270.8" />
 
     <!-- Enable recording -->
     <param name="white_line_detection_enableRecording" value="false" />
