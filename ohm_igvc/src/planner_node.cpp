@@ -46,7 +46,7 @@ class Planner {
 		double distance_to_goal() { return distance(robot_position, goal); };
 		double distance_to_last() { return distance(robot_position, last_in_path); };
 		geometry_msgs::Point get_robot_real_position() { return cell_to_world(robot_position.x, robot_position.y); };
-		void replan_path(const ros::TimerEvent &e);
+		void path_debug(const ros::TimerEvent &e);
 			
     private:
 		std::array<Node, 8> get_successors(int x, int y, Node &parent); // 
@@ -61,17 +61,33 @@ class Planner {
 
 		double child_angle[8] = {-45.0, 0.0, 45.0, 90.0, 135.0, 180.0, 225.0, 270.0};
 
+		bool debug;
+		int debug_waypoint_id;
+		std::vector<geometry_msgs::Pose2D> debug_path;
+		ros::Time last_path_update;
+
 		Node goal;
 		Node last_in_path;
 		Node robot_position;
 
         ros::NodeHandle node;
         ros::ServiceClient map_get_successors, map_cell_to_world, map_world_to_cell, map_robot_position, coord_convert, waypoint_service;
+		ros::Publisher path_debug;
+		ros::Timer debug_publisher;
 };
 
 Planner::Planner() {
 	permissible_distance = 25;
+
+	debug = false;
+
 	node.param("plan_distance", permissible_distance, permissible_distance);
+	node.param("planner_debug", debug, debug);
+
+	if(debug) {
+		path_debug = node.advertise<ohm_igvc::path_debug>("path_planner_debug", 1);
+		debug_publisher = node.createTimer(ros_duration(1.0), &Planner::path_debug, this);
+	}
 	
 	map_get_successors = node.serviceClient<ohm_igvc::get_successors>("get_successors", true);
 	map_cell_to_world = node.serviceClient<ohm_igvc::cell_to_real>("cell_to_real", true);
@@ -165,6 +181,11 @@ std::vector<geometry_msgs::Pose2D> Planner::plan(int x, int y) {
 
 	last_in_path = path.front();
 
+	if(debug) {
+		debug_path = final_path;
+		last_path_update = ros::Time::now();
+	}
+
 	return final_path;
 }
 
@@ -190,6 +211,8 @@ bool Planner::get_next_waypoint(int i) {
 
 	goal.x = req_cell.response.x;
 	goal.y = req_cell.response.y;
+
+	if(debug) debug_waypoint_id = i;
 
 	return true;
 }
@@ -242,13 +265,28 @@ void Planner::get_robot_position() {
 	robot_position.y = req.response.y;
 }
 
+void Planner::path_debug(const ros::TimerEvent &e) {
+	ohm_igvc::path_debug d;
+	d.target_waypoint = debug_waypoint_id;
+	d.where_am_i.x = robot_x;
+	d.where_am_i.y = robot_y;
+	d.distance_to_goal = distance_to_goal();
+	d.distance_to_last = distance_to_last();
+	d.path = debug_path;
+	d.last_update = last_path_update;
+	path_debug.publish(d);
+}
+
 /* ------------------- // MAIN STUFF // -------------------- */
 
 ohm_igvc::pid_feedback feedback;
+bool drive_mode;
 
 void pid_feedback_callback(const ohm_igvc::pid_feedback::ConstPtr &fb) {
 	feedback = *fb;
 };
+
+void drive_mode_callback(
 
 int main(int argc, char **argv) {
 	ros::init(argc, argv, "path_planner");
@@ -257,8 +295,8 @@ int main(int argc, char **argv) {
 	ros::Subscriber pid_feedback;
 	ros::Publisher target, desired_speed;
 	
-	double planning_threshold = 15.0;
-	double hit_threshold = 5.0;
+	double planning_threshold = 5.0;
+	double hit_threshold = 2.0;
 	double planning_rate = 0.5;
 	double OP_SPEED = 0.25, PLAN_SPEED = 0.1, STOP = 0.0, SPEEDY_GONZALES = 0.5;
 	node.param("planning_threshold", planning_threshold, planning_threshold);
@@ -298,6 +336,8 @@ int main(int argc, char **argv) {
 				if(!planner.get_next_waypoint(waypoint_id)) break;
 			}
 			
+			planner.get_robot_position();
+
 			current_path = planner.plan(planner.get_robot_x(), planner.get_robot_y());
 			geometry_msgs::Point p = planner.get_robot_real_position();
 			pid_path.lastTarget.latitude = p.x;
@@ -319,6 +359,8 @@ int main(int argc, char **argv) {
 
 				waypoint_id++;
 				if(!planner.get_next_waypoint(waypoint_id)) break;
+
+				planner.get_robot_position();
 
 				current_path = planner.plan(planner.get_robot_x(), planner.get_robot_y());
 				geometry_msgs::Point p = planner.get_robot_real_position();
