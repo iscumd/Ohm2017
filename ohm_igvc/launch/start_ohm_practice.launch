@@ -88,6 +88,7 @@
 	<node pkg="ohm_igvc" type="grid_map" name="grid_map" output="screen" />
 
 	<!-- Path Planning -->
+	<param name="planner_debug" value="true" />
 	<param name="planning_threshold" value="10.0" />
 	<param name="hit_threshold" value="2.5" />
 	<node pkg="ohm_igvc" type="path_planner" name="path_planner" output="screen" />
