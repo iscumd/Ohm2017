@@ -64,7 +64,18 @@
 	<node pkg="isc_shared" type="roboteq_nextgen" name="roboteq_nextgen" output="screen"/>
 
 	<!-- Mapping -->
+	<param name="show_map" value="true"/>
+	<param name="odometry_topic" value="/ohm/odom" />
+	<param name="laser_topic" value="/scan" />
+	<param name="camera_topic" value="whiteLineDistances" />
+	<param name="raster_x" value="20.9" />
+	<param name="raster_y" value="15.8" />
+	<param name="resolution" value="0.1" />
+	<param name="width" value="100" />
+	<param name="height" value="100" />
 	<node pkg="ohm_igvc" type="grid_map" name="grid_map" output="screen"/>
 	<!-- Path Planning -->
+	<param name="planning_threshold" value="10.0" />
+	<param name="hit_threshold" value="2.5" />
 	<node pkg="ohm_igvc" type="path_planner" name="path_planner" output="screen"/>
 </launch>
