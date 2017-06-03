@@ -280,19 +280,22 @@ void Planner::path_debug(const ros::TimerEvent &e) {
 /* ------------------- // MAIN STUFF // -------------------- */
 
 ohm_igvc::pid_feedback feedback;
-bool drive_mode;
+bool auto_mode = false;
 
 void pid_feedback_callback(const ohm_igvc::pid_feedback::ConstPtr &fb) {
 	feedback = *fb;
 };
 
-void drive_mode_callback(
+void drive_mode_callback(const ohm_igvc::drive_mode::ConstPtr &mode) {
+	if(mode->mode == "auto") auto_mode = true;
+	else auto_mode = false;
+}
 
 int main(int argc, char **argv) {
 	ros::init(argc, argv, "path_planner");
 	Planner planner;
 	ros::NodeHandle node;
-	ros::Subscriber pid_feedback;
+	ros::Subscriber pid_feedback, drive_mode;
 	ros::Publisher target, desired_speed;
 	
 	double planning_threshold = 5.0;
@@ -309,6 +312,8 @@ int main(int argc, char **argv) {
 	ros::Rate plan_rate(planning_rate);
 
 	if(planning_threshold > 0) pid_feedback = node.subscribe<ohm_igvc::pid_feedback>("ohmPidFeedback", 1, &pid_feedback_callback);
+
+	drive_mode = node.subscribe<ohm_igvc::drive_mode>("drive_mode", 1, &drive_mode_callback);
 	desired_speed = node.advertise<geometry_msgs::Twist>("/ohm/pathPlannerSpeed", 5);
 	target = node.advertise<ohm_igvc::planned_path>("/ohm/pathPlanning", 5);
 
@@ -323,6 +328,8 @@ int main(int argc, char **argv) {
 
 	while(ros::ok()) {
 		ros::spinOnce();
+
+		if(!auto_mode) continue;
 
 		planner.get_robot_position();
 		
