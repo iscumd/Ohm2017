@@ -128,7 +128,7 @@ Planner::Planner() {
 	drive_mode = node.subscribe<ohm_igvc::drive_mode>("drive_mode", 1, &Planner::drive_mode_callback, this);
 	robot_position_update = node.subscribe<ohm_igvc::position_update>("/ohm/robot_cell_position", 1, &Planner::get_robot_position, this);
 	desired_speed = node.advertise<geometry_msgs::Twist>("/ohm/pathPlannerSpeed", 5);
-	target = node.advertise<ohm_igvc::planned_path>("/ohm/pathPlanning", 5);
+	target = node.advertise<ohm_igvc::planned_path>("/pathPlanning", 5);
 	
 	map_get_successors = node.serviceClient<ohm_igvc::get_successors>("get_successors", true);
 	map_cell_to_world = node.serviceClient<ohm_igvc::cell_to_real>("cell_to_real", true);
@@ -139,6 +139,8 @@ Planner::Planner() {
 	get_next_waypoint();
 
 	first_run = true;
+
+	last_path_update = ros::Time::now();
 }
 
 void Planner::run() {
@@ -147,6 +149,7 @@ void Planner::run() {
 			plan(robot_position.x, robot_position.y);
 			set_first_target();
 			request_speed(OP_SPEED);
+			first_run = false;
 		}
 
 		double d_goal = distance_to_goal(), d_last = distance_to_last();
@@ -168,11 +171,13 @@ void Planner::run() {
 			ROS_INFO("HIT PATH TARGET");
 			set_next_target();
 		}
+
+		target.publish(pid_path);
 	}
 }
 
 void Planner::plan(int x, int y) {
-	ROS_INFO("BEGIN_PLANNING");
+	//ROS_INFO("BEGIN_PLANNING");
     boost::heap::priority_queue<Node> open, closed;
 	std::vector<Node> path;
 	//std::vector<geometry_msgs::Pose2D> final_path;	
@@ -193,7 +198,7 @@ void Planner::plan(int x, int y) {
 
 	bool searching = true;
 
-	ROS_INFO("A* REACHED");
+	//ROS_INFO("A* REACHED");
 
 	while(!open.empty() && searching) {
 		Node q = open.top();
@@ -287,7 +292,7 @@ void Planner::plan(int x, int y) {
 		}
 	}
 
-	ROS_INFO("FINAL PATH COMPILED");
+	//ROS_INFO("FINAL PATH COMPILED");
 
 	last_in_path = cell_to_world(path.front().x, path.front().y);
 
@@ -402,6 +407,7 @@ void Planner::path_debug(const ros::TimerEvent &e) {
 	d.distance_to_goal = distance_to_goal();
 	d.distance_to_last = distance_to_last();
 	d.path = current_path;
+	if(current_path.size() == 0) ROS_INFO("NO PATH AAAAAAH!");
 	d.last_update.data = last_path_update;
 	path_debug_pub.publish(d);
 }
