@@ -33,6 +33,9 @@
 	</node>
 
 	<!-- GPS -->
+	<param name="device" value="/dev/ttyUSB1" />
+	<param name="gps_heading" value="/heading" />
+	<param name="gps_position" value="/position" />
 	<node pkg="vn300" type="vn300_node" name="vn300_node" output="screen" />
 
 	<!-- Waypoint Service -->
@@ -70,9 +73,10 @@
 
 	<!-- Mapping -->
 	<param name="show_map" value="false" />
-	<param name="map_odometry_topic" value="/ohm/pose" />
+	<param name="map_odometry_topic" value="/ohm/odom" />
 	<param name="map_use_pcl" value="true" />
-	<param name="map_laser_topic" value="/ohm/point_cloud" />
+	<param name="map_laser_topic" value="/scan_to_xy_out" />
+	<param name="map_camera_topic" value="/whiteLineDistances" />
 	<param name="map_raster_x" value="-32.949" />
 	<param name="map_raster_y" value="27.215" />
 	<param name="map_threshold" value="65" />
