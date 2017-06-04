@@ -12,8 +12,10 @@
 #include <ohm_igvc/get_successors.h>
 #include <ohm_igvc/cell_to_real.h>
 #include <ohm_igvc/real_to_cell.h>
-#include <ohm_igvc/robot_position.h>
 #include <ohm_igvc/pixel_locations.h>
+#include <ohm_igvc/position_update.h>
+#include <tf/transform_listener.h>
+#include <tf/transform_datatypes.h>
 
 // opencv includes
 
@@ -40,7 +42,6 @@ class grid_map {
 		bool successors_callback(ohm_igvc::get_successors::Request &rq, ohm_igvc::get_successors::Response &rp); // 
 		bool cell_to_real_callback(ohm_igvc::cell_to_real::Request &rq, ohm_igvc::cell_to_real::Response &rp); //
 		bool real_to_cell_callback(ohm_igvc::real_to_cell::Request &rq, ohm_igvc::real_to_cell::Response &rp); //
-		bool robot_position_callback(ohm_igvc::robot_position::Request &rq, ohm_igvc::robot_position::Response &rp); //
 		// double obstacle_cost(int x, int y); // for later
 		double quaternion_to_euler(geometry_msgs::Quaternion q); //
 		// double distance(Point32 first, Node second) { return std::hypot((second.x - first.x), (second.y - first.y)); };
@@ -59,9 +60,11 @@ class grid_map {
 		int m_threshold;
 
 		ros::Subscriber camera_input, laser_input, odometry_input;
-		ros::ServiceServer successors, cell_to_real, real_to_cell, robot_position;
+		ros::Publisher robot_cell_output;
+		ros::ServiceServer successors, cell_to_real, real_to_cell;
 		ros::NodeHandle node;
-		ros::Timer map_display_timer;		
+		ros::Timer map_display_timer;	
+		tf::TransformListener listener;	
 };
 
 
@@ -115,10 +118,11 @@ grid_map::grid_map(unsigned short threshold = 200) :
 	else laser_input = node.subscribe<sensor_msgs::LaserScan>(laser_topic, 3, &grid_map::laser_scan_update, this);
 	odometry_input = node.subscribe<geometry_msgs::Pose2D>(odom_topic, 3, &grid_map::odometry_update, this);
 
+	robot_cell_output = node.advertise<ohm_igvc::position_update>("/ohm/robot_cell_position", 5);
+
 	successors = node.advertiseService("get_successors", &grid_map::successors_callback, this);
 	cell_to_real = node.advertiseService("cell_to_real", &grid_map::cell_to_real_callback, this);
 	real_to_cell = node.advertiseService("real_to_cell", &grid_map::real_to_cell_callback, this);
-	robot_position = node.advertiseService("get_robot_position", &grid_map::robot_position_callback, this);
 
 	if(show_map) {
 		map_display_timer = node.createTimer(ros::Duration(0.5), &grid_map::display_map, this);
@@ -154,12 +158,17 @@ void grid_map::laser_scan_update(const sensor_msgs::LaserScan::ConstPtr &scan) {
 
 void grid_map::point_cloud_update(const sensor_msgs::PointCloud::ConstPtr &points) {
 	for(int point = 0; point < points->points.size(); point++) {
+		/*
 		double cos_heading = std::cos(odometry.theta), sin_heading = std::sin(odometry.theta);
 		float x_prime = points->points[point].x, y_prime = points->points[point].y;
 
 		int i = ((odometry.x + ((x_prime * cos_heading) - (y_prime * sin_heading))) - raster_reference.x) / m_resolution;
 		int j = ((odometry.y + ((y_prime * cos_heading) + (x_prime * sin_heading))) + raster_reference.y) / m_resolution;
+		*/
 
+		int i = points->points[point].x / m_resolution;
+		int j = points->points[point].y / m_resolution;
+		
 		if(i > m_world.cols || i < 0) continue;
 		if(j > m_world.rows || j < 0) continue;
 			
@@ -168,12 +177,28 @@ void grid_map::point_cloud_update(const sensor_msgs::PointCloud::ConstPtr &point
 }
 
 void grid_map::camera_update(const ohm_igvc::pixel_locations::ConstPtr &cam) {
+	tf::StampedTransform laser, robot;
+
+	try {
+		listener.lookupTransform("ohm_base_link", "world", cam->time.data, robot);
+		listener.lookupTransform("sick_laser_link", "ohm_base_link", cam->time.data, laser);
+	} catch(tf::TransformException e) {
+		ROS_ERROR("Dropped camera frame: %s", e.what());
+		return;
+	}
+
+	double roll, pitch, yaw;
+
+	tf::Matrix3x3(robot.getRotation()).getRPY(roll, pitch, yaw);
+
+	double cos_heading = std::cos(yaw), sin_heading = std::sin(yaw);
+	double odom_origin_x = robot.getOrigin().x() + laser.getOrigin().x(), odom_origin_y = robot.getOrigin().y() + laser.getOrigin().y();
+
 	for(int pixel = 0; pixel < cam->pixelLocations.size(); pixel++) {
-		double cos_heading = std::cos(odometry.theta), sin_heading = std::sin(odometry.theta);
 		float x_prime = cam->pixelLocations[pixel].x, y_prime = cam->pixelLocations[pixel].y;
 
-		int i = ((odometry.x + ((x_prime * cos_heading) - (y_prime * sin_heading))) - raster_reference.x) / m_resolution;
-		int j = ((odometry.y + ((y_prime * cos_heading) + (x_prime * sin_heading))) + raster_reference.y) / m_resolution;
+		int i = (odom_origin_x + ((x_prime * cos_heading) - (y_prime * sin_heading)) - raster_reference.x) / m_resolution;
+		int j = (odom_origin_y + ((y_prime * cos_heading) + (x_prime * sin_heading)) + raster_reference.y) / m_resolution;
 
 		if(i > m_world.cols || i < 0) continue;
 		if(j > m_world.rows || j < 0) continue;
@@ -184,6 +209,14 @@ void grid_map::camera_update(const ohm_igvc::pixel_locations::ConstPtr &cam) {
 
 void grid_map::odometry_update(const geometry_msgs::Pose2D::ConstPtr &odom) {
 	odometry = *odom;
+
+	ohm_igvc::position_update p;
+	p.x = std::trunc((odometry.x - raster_reference.x) / m_resolution);
+	p.y = std::trunc((odometry.y - raster_reference.y) / m_resolution);
+	p.real.x = odometry.x;
+	p.real.y = odometry.y;
+
+	robot_cell_output.publish(p);
 }
 
 void grid_map::display_map(const ros::TimerEvent &e) {
@@ -249,13 +282,6 @@ bool grid_map::successors_callback(ohm_igvc::get_successors::Request &rq, ohm_ig
 	rp.nodes[7].x = rq.x - 1;
 	rp.nodes[7].y = rq.y;
 	
-	return true;	
-}
-
-bool grid_map::robot_position_callback(ohm_igvc::robot_position::Request &rq, ohm_igvc::robot_position::Response &rp) {
-	rp.x = (odometry.x - raster_reference.x) / m_resolution;
-	rp.y = (odometry.y + raster_reference.y) / m_resolution;
-
 	return true;	
 }
 

@@ -4,8 +4,8 @@
 #include <boost/bind.hpp>
 #include "ThreadPool.h"
 
-#include <vn300/Heading.h>
-#include <vn300/Position.h>
+#include <vn300/Pose.h>
+#include <vn300/Velocities.h>
 #include <vn300/Status.h>
 
 // | 0  |  1  |  2  |  3  |  4 |  5  |  6  |  7  |  8  |  9  |  10  |  11  |  12  |  13  |  14  |  15  |
@@ -39,8 +39,8 @@ class vn300_node {
 
 		nbsdx::concurrent::ThreadPool<5> workers; // 5 worker threads so we don't get a slowdown from serializing all the messages we get
 
-		ros::Publisher heading;
-		ros::Publisher position;
+		ros::Publisher pose;
+		ros::Publisher velocity;
 		ros::Publisher status;
 
 		ros::NodeHandle node;
@@ -48,7 +48,7 @@ class vn300_node {
 		std::string device;
 		int rate;
 
-		void setup();
+		void setup(int pose_rate, int vel_rate, int status_rate);
 
 	public:
 		vn300_node();
@@ -61,8 +61,8 @@ class vn300_node {
 
 		// publishing wrappers allow us to add the message serialization to the thread pool
 
-		void publish_heading_wrapper(vn300::Heading msg) { heading.publish(msg); };
-		void publish_position_wrapper(vn300::Position msg) { position.publish(msg); };
+		void publish_pose_wrapper(vn300::Pose msg) { pose.publish(msg); };
+		void publish_velocity_wrapper(vn300::Velocities msg) { velocity.publish(msg); };
 		void publish_status_wrapper(vn300::Status msg) { status.publish(msg); };
 
 		unsigned published() { return workers.JobsRemaining(); }; // debug function
@@ -141,32 +141,34 @@ void vn300_packet_handler(void *userdata, vn::protocol::uart::Packet &p, size_t 
 
 	if(p.type() == Packet::TYPE_BINARY) {
 		//ROS_INFO_THROTTLE(2, "Binary packet recevied");
-		if(p.isCompatible(COMMONGROUP_YAWPITCHROLL, TIMEGROUP_NONE, IMUGROUP_NONE, GPSGROUP_NONE, ATTITUDEGROUP_YPRU, INSGROUP_NONE)) {	
-			// p is a heading packet
-			vn300::Heading msg;
+		if(p.isCompatible(COMMONGROUP_YAWPITCHROLL | COMMONGROUP_POSITION, TIMEGROUP_NONE, IMUGROUP_NONE, GPSGROUP_POSU, ATTITUDEGROUP_YPRU, INSGROUP_NONE)) {	
+			// p is a pose packet
+			vn300::Pose msg;
 
 			msg.header.stamp = ros::Time::now();
 
 			vec3f ypr = p.extractVec3f();
+			vec3d pos_lla = p.extractVec3d();
+			vec3f pos_u = p.extractVec3f();
 			vec3f ypr_u = p.extractVec3f();
 			
 			for(int i = 0; i < 3; i++) {
 				msg.heading[i] = ypr[i];
+				msg.position[i] = pos_lla[i];
 				msg.heading[i + 3] = ypr_u[i];
+				msg.position[i + 3] = pos_u[i];
 			}
 
-			obj->workers.AddJob(boost::bind(&vn300_node::publish_heading_wrapper, obj, msg));
+			obj->workers.AddJob(boost::bind(&vn300_node::publish_pose_wrapper, obj, msg));
 
-		} else if(p.isCompatible(COMMONGROUP_ANGULARRATE | COMMONGROUP_POSITION | COMMONGROUP_VELOCITY, TIMEGROUP_NONE, IMUGROUP_NONE, GPSGROUP_POSU | GPSGROUP_VELU, ATTITUDEGROUP_NONE, INSGROUP_NONE)) {			
-			// p is a position packet
-			vn300::Position msg;
+		} else if(p.isCompatible(COMMONGROUP_ANGULARRATE | COMMONGROUP_VELOCITY, TIMEGROUP_NONE, IMUGROUP_NONE, GPSGROUP_VELU, ATTITUDEGROUP_NONE, INSGROUP_NONE)) {			
+			// p is a velocities packet
+			vn300::Velocities msg;
 				
 			msg.header.stamp = ros::Time::now();
 		
 			vec3f angular_rate = p.extractVec3f();
-			vec3d pos_lla = p.extractVec3d();
 			vec3f vel_ned = p.extractVec3f();
-			vec3f pos_u = p.extractVec3f();
 			float vel_u = p.extractFloat(); // note vel_u field in GPS group is NOT a vector of 3 floats, but a single float. attempting to extract a vec3f will cause the program to become nonresponsive.
 
 			msg.velocity[3] = vel_u;
@@ -174,11 +176,9 @@ void vn300_packet_handler(void *userdata, vn::protocol::uart::Packet &p, size_t 
 			for(int i = 0; i < 3; i++) {
 				msg.velocity[i] = vel_ned[i];
 				msg.angular[i] = angular_rate[i];
-				msg.position[i] = pos_lla[i];
-				msg.position[i + 3] = pos_u[i];
 			}
 
-			obj->workers.AddJob(boost::bind(&vn300_node::publish_position_wrapper, obj, msg));
+			obj->workers.AddJob(boost::bind(&vn300_node::publish_velocity_wrapper, obj, msg));
 
 		} else if(p.isCompatible(COMMONGROUP_INSSTATUS, TIMEGROUP_NONE, IMUGROUP_NONE, GPSGROUP_NUMSATS | GPSGROUP_FIX, ATTITUDEGROUP_NONE, INSGROUP_NONE)) {			
 			// p is a status packet
@@ -227,35 +227,35 @@ void vn300_error_handler(void *userdata, vn::protocol::uart::Packet &e, size_t i
 		sets up the binary registers to send out packets at at 10, 8, and 20 hz respectively. also registers the packet and error handlers with the library.
 */
 
-void vn300_node::setup() {
+void vn300_node::setup(int pose_rate, int vel_rate, int status_rate) {
 	using namespace vn::sensors;
 	using namespace vn::protocol::uart;
 
-	BinaryOutputRegister heading(
+	BinaryOutputRegister pose_bor(
 		ASYNCMODE_PORT1,
-		40,
-		COMMONGROUP_YAWPITCHROLL,
+		400 / pose_rate,
+		COMMONGROUP_YAWPITCHROLL | COMMONGROUP_POSITION,
 		TIMEGROUP_NONE,
 		IMUGROUP_NONE,
-		GPSGROUP_NONE,
+		GPSGROUP_POSU,
 		ATTITUDEGROUP_YPRU,
 		INSGROUP_NONE			
 	);
 
-	BinaryOutputRegister position(
+	BinaryOutputRegister velocities_bor(
 		ASYNCMODE_PORT1,
-		50,
-		COMMONGROUP_ANGULARRATE | COMMONGROUP_POSITION | COMMONGROUP_VELOCITY,
+		400 / vel_rate,
+		COMMONGROUP_ANGULARRATE | COMMONGROUP_VELOCITY,
 		TIMEGROUP_NONE,
 		IMUGROUP_NONE,
-		GPSGROUP_POSU | GPSGROUP_VELU,
+		GPSGROUP_VELU,
 		ATTITUDEGROUP_NONE,
 		INSGROUP_NONE
 	);
 
-	BinaryOutputRegister status(
+	BinaryOutputRegister status_bor(
 		ASYNCMODE_PORT1,
-		20,
+		400 / status_rate,
 		COMMONGROUP_INSSTATUS,
 		TIMEGROUP_NONE,
 		IMUGROUP_NONE,
@@ -267,13 +267,13 @@ void vn300_node::setup() {
 	sensor.writeAsyncDataOutputType(VNOFF);
 
 	ROS_INFO("Connecting binary output 1 . . . ");
-	sensor.writeBinaryOutput1(heading);
+	sensor.writeBinaryOutput1(pose_bor);
 
 	ROS_INFO("Connecting binary output 2 . . . ");
-	sensor.writeBinaryOutput2(position);
+	sensor.writeBinaryOutput2(velocities_bor);
 
 	ROS_INFO("Connecting binary output 3 . . . ");
-	sensor.writeBinaryOutput3(status);
+	sensor.writeBinaryOutput3(status_bor);
 
 	sensor.registerAsyncPacketReceivedHandler(this, vn300_packet_handler);
 	sensor.registerErrorPacketReceivedHandler(NULL, vn300_error_handler);
@@ -292,9 +292,16 @@ vn300_node::vn300_node() :
 	using namespace vn::sensors;
 	using namespace vn::protocol::uart;
 
+	int pose_hz = 10;
+	int vel_hz = 8;
+	int status_hz = 20;
+
 	// params
 	node.param("device", device, device); // for roslaunch files
-	node.param("rate", rate, rate);
+	node.param("serial-rate", rate, rate);
+	node.param("pose_refresh_rate", pose_hz, pose_hz);
+	node.param("velocity_refresh_rate", vel_hz, vel_hz);
+	node.param("status_refresh_rate", status_hz, status_hz);
 	
 	// setup
 	
@@ -304,11 +311,11 @@ vn300_node::vn300_node() :
 
 	ROS_INFO("Connected to %s at %d baud", device.c_str(), rate);
 
-	heading = node.advertise< vn300::Heading >("heading", true);
-	position = node.advertise< vn300::Position >("position", true);
+	pose = node.advertise< vn300::Pose >("pose", true);
+	velocity = node.advertise< vn300::Velocities >("velocities", true);
 	status = node.advertise< vn300::Status >("status", true);
 
-	setup();
+	setup(pose_hz, vel_hz, status_hz);
 }
 
 int main(int argc, char **argv) {

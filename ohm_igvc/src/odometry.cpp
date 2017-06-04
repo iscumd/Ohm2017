@@ -1,9 +1,9 @@
 #include <ros/ros.h>
 #include <ros/console.h>
+#include <tf/transform_broadcaster.h>
 #include <geometry_msgs/Pose2D.h>
 #include <ohm_igvc/coordinate_convert.h>
-#include <vn300/Heading.h>
-#include <vn300/Position.h>
+#include <vn300/Pose.h>
 #include <ohm_igvc/target.h>
 #include <string>
 #include <cmath>
@@ -13,8 +13,7 @@
 class odometry {
   public:
     odometry();
-    void heading_callback(const vn300::Heading::ConstPtr &head);
-    void position_callback(const vn300::Position::ConstPtr &pos);
+    void position_callback(const vn300::Pose::ConstPtr &pos);
     bool convert_callback(ohm_igvc::coordinate_convert::Request &rq, ohm_igvc::coordinate_convert::Response &rp);
 	double gps_x(double lon) { 
 		ROS_INFO("K_EW = %f", K_EW);
@@ -28,7 +27,7 @@ class odometry {
 		return (K_NS * (lat - origin.latitude)); };
 
   private:
-    ros::Subscriber headingSub, positionSub;
+    ros::Subscriber positionSub;
     ros::Publisher pose;
     ros::ServiceServer coord_convert;
     ros::NodeHandle node;
@@ -36,19 +35,20 @@ class odometry {
 
     double K_NS, K_EW;
 
+    tf::TransformBroadcaster base_br;
+    tf::Transform t;
+    tf::Quaternion q;
+
     geometry_msgs::Pose2D position;
-    //origin - g
 };
 
 odometry::odometry() {
-    std::string gps_heading = "/vn300/heading";
     std::string gps_position = "/vn300/position";
 	K_NS = 111120.00;
 
 	node.param("K_NS", K_NS, K_NS);
     node.param("origin_latitude", origin.latitude, 0.0);
     node.param("origin_longitude", origin.longitude, 0.0);
-    node.param("gps_heading", gps_heading, gps_heading);
     node.param("gps_position", gps_position, gps_position);
 
 	K_EW = K_NS * std::cos(DEG2RAD(origin.latitude));
@@ -56,8 +56,7 @@ odometry::odometry() {
 	ROS_INFO("K_NS = %f", K_NS);
 	ROS_INFO("K_EW = %f", K_EW);
 
-    headingSub = node.subscribe<vn300::Heading>(gps_heading, 5, &odometry::heading_callback, this);
-    positionSub = node.subscribe<vn300::Position>(gps_position, 5, &odometry::position_callback, this);
+    positionSub = node.subscribe<vn300::Pose>(gps_position, 5, &odometry::position_callback, this);
 
 	coord_convert = node.advertiseService("coordinate_convert", &odometry::convert_callback, this);
 
@@ -67,16 +66,18 @@ odometry::odometry() {
     position.theta = 0.0;
 }
 
-void odometry::heading_callback(const vn300::Heading::ConstPtr &head) {
-    position.theta = head->heading[0]; 
-    pose.publish(position);
-
-}
-
-void odometry::position_callback(const vn300::Position::ConstPtr &pos) {
+void odometry::position_callback(const vn300::Pose::ConstPtr &pos) {
     position.x = gps_x(pos->position[1]);
 	position.y = gps_y(pos->position[0]);
-	
+
+    position.theta = pos->heading[0];
+
+    t.setOrigin(tf::Vector3(position.x, position.y, 0.0));
+    q.setRPY(0, 0, position.theta);
+    t.setRotation(q);
+
+    base_br.sendTransform(tf::StampedTransform(t, ros::Time::now(), "world", "ohm_base_link"));
+
 	pose.publish(position);
 }
 

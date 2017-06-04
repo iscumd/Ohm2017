@@ -152,6 +152,9 @@ int main(int argc, char **argv)
         ohm_webcam >> input;
         if (input.empty())
             break;
+        
+        msg.time.data = ros::Time::now();
+        
         // Warp -> Crop -> Change2HSV -> Threshold HSV -> Filter
         warpPerspective(input, transformed, transmtx, transformed.size());
         Cropped_region = transformed(im_ROI);
