@@ -246,7 +246,7 @@ void Planner::plan(int x, int y) {
 		double angle_avg = 0.0;
 		int n = 0;
 
-		for(auto current = path.rbegin(); true);) {
+		for(auto current = path.rbegin(); current != path.rend();) {
 			angle_avg = (child_angle[current->which_child] + (n * angle_avg)) / (++n);
 			
 			geometry_msgs::Pose2D waypoint;
@@ -281,6 +281,8 @@ void Planner::plan(int x, int y) {
 				waypoint.y = real_coord.y;
 				
 				waypoint.theta = angle_avg;
+
+				current++;
 			}
 		}
 	}
@@ -346,7 +348,7 @@ std::array<Node, 8> Planner::get_successors(int x, int y, Node &parent) {
 			successors[i].t = req.response.nodes[i].t_cost;
 		}
 	} else {
-		ROS_INFO("failed getting successors")
+		ROS_INFO("failed getting successors");
 	}
 
 	return successors;
