@@ -184,11 +184,8 @@ int main(int argc, char **argv)
     ros::Subscriber lidarSub = n.subscribe("scan", 3, lidarPointsCallback);
     ros::Subscriber odometrySub = n.subscribe("/ohm/odom", 3, odometryCallback);
 
-    while(ros::ok())
-    {
-
-        if(isThereAnObstacle)
-        {
+    while(ros::ok()){
+        if(isThereAnObstacle){
             double deltaDistance = sqrt(pow((robotCurrentPosition.x - robotDetectedDangerPosition.x), 2)- pow((robotCurrentPosition.y - robotDetectedDangerPosition.y), 2));
             while(ros::ok() && deltaDistance < backupDistance){
                 geometry_msgs::Twist msg;
@@ -199,8 +196,8 @@ int main(int argc, char **argv)
                 autoControlLogicPublisher.publish(msg);
             }
         }
+        ros::spin_once();
     }
 
-    ros::spin();
     return 0;
 }

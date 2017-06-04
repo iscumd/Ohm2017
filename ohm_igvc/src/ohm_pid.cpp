@@ -89,7 +89,7 @@ void pathPlannerSpeedCallback(const geometry_msgs::Twist::ConstPtr& twistMsg){
 void pid(){
 	if (oldCurrentTarget.latitude != plannedPath.currentTarget.latitude
 		|| oldCurrentTarget.longitude != plannedPath.currentTarget.longitude){
-		ros::Rate targetChangeDelay(targetChangeDelayParameter);
+		ros::Duration targetChangeDelay(targetChangeDelayParameter);
 		targetChangeDelay.sleep();
 		initPID();
 	}
