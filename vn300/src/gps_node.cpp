@@ -233,7 +233,7 @@ void vn300_node::setup(int pose_rate, int vel_rate, int status_rate) {
 
 	BinaryOutputRegister pose_bor(
 		ASYNCMODE_PORT1,
-		50,
+		20,
 		COMMONGROUP_YAWPITCHROLL | COMMONGROUP_POSITION,
 		TIMEGROUP_NONE,
 		IMUGROUP_NONE,
