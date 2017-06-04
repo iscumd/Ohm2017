@@ -176,7 +176,9 @@ void Planner::run() {
 			set_next_target();
 		}
 
-		target.publish(pid_path);
+		if(current_path.size() > 0) {
+			target.publish(pid_path);
+		}
 	}
 }
 
