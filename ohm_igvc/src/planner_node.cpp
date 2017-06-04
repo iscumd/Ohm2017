@@ -331,10 +331,10 @@ int main(int argc, char **argv) {
 	while(ros::ok()) {
 		ros::spinOnce();
 
-		if(!auto_mode) continue;
-
 		planner.get_robot_position();
-		
+
+		if(!auto_mode) continue;
+				
 		if(planning_threshold < 0) {
 			if(planner.distance_to_goal() < hit_threshold) {
 				// stop
