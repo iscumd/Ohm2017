@@ -130,7 +130,7 @@ Planner::Planner() {
 	desired_speed = node.advertise<geometry_msgs::Twist>("/ohm/pathPlannerSpeed", 5);
 	target = node.advertise<ohm_igvc::planned_path>("/pathPlanning", 5);
 	
-	map_get_successors = node.serviceClient<ohm_igvc::get_successors>("get_successors", true);
+	map_get_successors = node.serviceClient<ohm_igvc::get_successors>("get_successors");
 	map_cell_to_world = node.serviceClient<ohm_igvc::cell_to_real>("cell_to_real", true);
 	map_world_to_cell = node.serviceClient<ohm_igvc::real_to_cell>("real_to_cell", true);
 	coord_convert = node.serviceClient<ohm_igvc::coordinate_convert>("coordinate_convert", true);
@@ -138,6 +138,7 @@ Planner::Planner() {
 
 	if(!map_get_successors.exists()) {
 		map_get_successors.waitForExistence();
+		ROS_INFO("%s", map_get_successors.getService().c_str());
 	}
 
 	get_next_waypoint();
@@ -210,6 +211,8 @@ void Planner::plan(int x, int y) {
 		Node q = open.top();
 		open.pop();
 		
+		ROS_INFO("Check 0");
+
 		std::array<Node, 8> successors = get_successors(q.x, q.y, q);
 
 		for(auto child = successors.begin(); child != successors.end(); ++child) {
@@ -218,6 +221,8 @@ void Planner::plan(int x, int y) {
 			ROS_INFO("Check 1");
 			
 			if(*child == goal) {
+				ROS_INFO("Child: (%d, %d), Goal: (%d, %d)", child->x, child->y, goal.x, goal.y);
+
 				goal.parent = child->parent;
 				last_q = goal;                               
 				searching = false;
@@ -363,22 +368,19 @@ std::array<Node, 8> Planner::get_successors(int x, int y, Node &parent) {
 		req.request.x = x;
 		req.request.y = y;
 		
-		if(map_get_successors.call(req)) {
+		//if(map_get_successors.call(req)) {
 		
-			for(int i = 0; i < 8; i++) {
-				if(req.response.nodes[i].t_cost >= 0) {
-					successors[i].parent = &parent;
-				}
-				
-				successors[i].x = req.response.nodes[i].x;
-				successors[i].y = req.response.nodes[i].y;	
-				successors[i].which_child = i;		
-				successors[i].t = req.response.nodes[i].t_cost;
+		for(int i = 0; i < 8; i++) {
+			if(req.response.nodes[i].t_cost >= 0) {
+				successors[i].parent = &parent;
 			}
+				
+			successors[i].x = req.response.nodes[i].x;
+			successors[i].y = req.response.nodes[i].y;	
+			successors[i].which_child = i;		
+			successors[i].t = req.response.nodes[i].t_cost;
 		}
-	} else {
-		ROS_INFO("failed getting successors");
-	}
+	} 
 
 	return successors;
 }	
@@ -431,7 +433,7 @@ void Planner::path_debug(const ros::TimerEvent &e) {
 	d.distance_to_goal = distance_to_goal();
 	d.distance_to_last = distance_to_last();
 	d.path = current_path;
-	if(current_path.size() == 0) ROS_INFO("NO PATH AAAAAAH!");
+	//if(current_path.size() == 0) ROS_INFO("NO PATH AAAAAAH!");
 	d.last_update.data = last_path_update;
 	path_debug_pub.publish(d);
 }

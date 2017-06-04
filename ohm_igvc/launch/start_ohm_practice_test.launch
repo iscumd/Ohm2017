@@ -1,0 +1,106 @@
+<launch>
+	<!-- calibration constants-->
+	<param name="white_line_detection_A" value="0.0574766" />
+    <param name="white_line_detection_B" value="-3.109" />
+    <param name="white_line_detection_C" value="-0.0565714" />
+    <param name="white_line_detection_D" value="5.1699" />
+    <!-- sampling freq -->
+    <param name="white_line_detection_sampleEvery" value="1" />
+    <!-- ratio -->
+    <param name="white_line_detection_ratio" value="1.3333" />
+    <!--0 is laptop cam, 1 is external-->
+    <param name="white_line_detection_camSelect" value="1" />
+    <!-- Pixel coordinates go here -->
+    <param name="white_line_detection_topLeftXpix" value="262.8" />
+    <param name="white_line_detection_topLeftYpix" value="192.6" />
+    <param name="white_line_detection_topRightXpix" value="413.6" />
+    <param name="white_line_detection_topRightYpix" value="192.6" />
+    <param name="white_line_detection_bottomRightXpix" value="437.6" />
+    <param name="white_line_detection_bottomRightYpix" value="270.1" />
+    <param name="white_line_detection_bottomLeftXpix" value="235.5" />
+    <param name="white_line_detection_bottomLeftYpix" value="270.8" />
+    <!-- Enable recording -->
+    <param name="white_line_detection_enableRecording" value="false" />
+    <!-- Enable drawing -->
+    <param name="white_line_detection_enableDrawing" value="false" />
+	<!-- Camera node -->
+	<node pkg="ohm_igvc" type="white_line_detection" name="white_line_detection" output="log"/>
+
+	<!-- LiDAR -->
+	<arg name="host" default="192.168.0.100" />
+	<node pkg="isc_sick" name="isc_sick" type="LMS1xx_node">
+		<param name="host" value="$(arg host)" />
+		<param name="frame_id" value="sick_laser_link" />
+	</node>
+
+	<!-- GPS -->
+	<param name="device" value="/dev/ttyUSB1" />
+	<node pkg="vn300" type="vn300_node" name="vn300_node" output="screen" />
+
+	<!-- Waypoint Service -->
+	<param name="navigationFile" value="$(find ohm_igvc)/data/practice.txt" />
+	<node pkg="ohm_igvc" type="waypoint_selection" name="waypoint_selection" output="screen"/>
+
+	<!-- PID -->
+	<param name="pid_target_threshold" value="5.0" />
+	<param name="pid_target_change_delay" value="0.0" />
+	<node pkg="ohm_igvc" type="ohm_pid" name="ohm_pid" output="screen"/>
+
+	<!-- Obstacle Avoidance -->
+	<param name="obstacle_avoidance_obstacle_stop_threshold" value="3.0" />
+	<param name="obstacle_avoidance_backup_distance" value="1.0" />
+	<node pkg="ohm_igvc" type="obstacle_avoidance" name="obstacle_avoidance" output="log"/>
+
+	<!-- Auto Control Logic -->
+	<param name="obstacleOverrideDurationMillis" value="1000.0" />
+	<node pkg="ohm_igvc" type="auto_control_logic" name="auto_control_logic"/>
+
+	<!-- Joystick -->
+	<node pkg="joy" type="joy_node" name="joy_node" />
+	<node pkg="isc_shared" type="joystick" name="joystick"/>
+	<param name="manual_control_speed_multiplier" value="0.3" />
+	<param name="manual_control_turn_multiplier" value="0.2" />
+	<node pkg="isc_shared" type="manual_control" name="manual_control"/>
+	
+	<!-- Drive Mode Control -->
+	<param name="arduino_serial_port" value="/dev/ttyACM0" />
+	<node pkg="ohm_igvc" type="ohm_drive_mode_control" name="ohm_drive_mode_control" output="log"/>
+
+	<!-- Roboteq -->
+	<param name="serial_port" value="/dev/ttyUSB0" />
+	<node pkg="isc_shared" type="roboteq_nextgen" name="roboteq_nextgen" output="screen"/>
+
+	<!-- Odometry -->
+	<param name="gps_position" value="pose" />
+	<param name="origin_latitude" value="42.67857277" />
+	<param name="origin_longitude" value="-83.19506167" />
+	<node pkg="ohm_igvc" type="odometry" name="odometry" output="screen" />
+
+	<!-- Mapping -->
+	<param name="show_map" value="false" />
+	<param name="map_odometry_topic" value="/ohm/odom" />
+	<param name="map_use_pcl" value="true" />
+	<param name="map_laser_topic" value="/ohm/pcl" />
+	<param name="map_camera_topic" value="/whiteLineDistances" />
+	<param name="map_raster_x" value="-39.9742904916" />
+	<param name="map_raster_y" value="15.0267575998" />
+	<param name="map_threshold" value="65" />
+	<param name="map_resolution" value="0.2" />
+	<param name="map_width" value="300" />
+	<param name="map_height" value="300" />
+	<node pkg="ohm_igvc" type="grid_map" name="grid_map" output="screen" />
+
+	<!-- Path Planning -->
+	<param name="planner_debug" value="true" />
+	<param name="planning_threshold" value="5.0" />
+	<param name="hit_threshold" value="2.5" />
+	<node pkg="ohm_igvc" type="path_planner" name="path_planner" output="screen" />
+
+	<!-- LaserScan Conversion -->
+	<param name="use_tf" value="true" />
+	<param name="pcl_output" value="/ohm/pcl" />
+	<node pkg="ohm_igvc" type="scan_to_xy" name="scan_to_xy" output="log" />
+
+	<!-- Static Transforms -->
+	<node pkg="tf" type="static_transform_publisher" name="laser_link" args="0 0.395 0 0 0 0 ohm_base_link sick_laser_link 100" />
+</launch>
