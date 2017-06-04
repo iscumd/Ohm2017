@@ -136,6 +136,10 @@ Planner::Planner() {
 	coord_convert = node.serviceClient<ohm_igvc::coordinate_convert>("coordinate_convert", true);
 	waypoint_service = node.serviceClient<ohm_igvc::waypoint>("waypoint");
 
+	if(!map_get_successors.exists()) {
+		map_get_successors.waitForExistence();
+	}
+
 	get_next_waypoint();
 
 	first_run = true;
