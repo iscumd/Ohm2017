@@ -79,7 +79,7 @@ class Planner {
 
 		ohm_igvc::pid_feedback feedback;
 
-		bool debug, auto_mode, finished;
+		bool debug, auto_mode, finished, first_run;
 		int waypoint_id;
 		std::vector<geometry_msgs::Pose2D> current_path;
 		ohm_igvc::planned_path pid_path;
@@ -137,10 +137,18 @@ Planner::Planner() {
 	waypoint_service = node.serviceClient<ohm_igvc::waypoint>("waypoint");
 
 	get_next_waypoint();
+
+	first_run = true;
 }
 
 void Planner::run() {
 	if(auto_mode) {
+		if(first_run) {
+			plan(robot_position.x, robot_position.y);
+			set_first_target();
+			request_speed(OP_SPEED);
+		}
+
 		double d_goal = distance_to_goal(), d_last = distance_to_last();
 
 		if(d_goal < hit_threshold) {
@@ -238,20 +246,41 @@ void Planner::plan(int x, int y) {
 		double angle_avg = 0.0;
 		int n = 0;
 
-		for(auto current = path.rbegin(), next = path.rbegin() + 1; next != path.rend(); ++current, ++next) {
+		for(auto current = path.rbegin(); true);) {
 			angle_avg = (child_angle[current->which_child] + (n * angle_avg)) / (++n);
-			if(angular_distance(child_angle[current->which_child], child_angle[next->which_child]) >= 90.0) {
-				geometry_msgs::Pose2D waypoint;
-				geometry_msgs::Point real_coord = cell_to_world(current->x, current->y);
+			
+			geometry_msgs::Pose2D waypoint;
+			geometry_msgs::Point real_coord = cell_to_world(current->x, current->y);
+			
+			waypoint.x = real_coord.x;
+			waypoint.y = real_coord.y;
 
+			for(auto next = current + 1; next != path.rend(); ++next, ++current) {
+				if(angular_distance(child_angle[current->which_child], child_angle[next->which_child]) >= 90.0) {
+					waypoint.theta = angle_avg;
+
+					angle_avg = 0.0;
+					n = 0;
+					
+					current = next;
+					break;
+				}
+				
+				angle_avg += (child_angle[next->which_child] + (n * angle_avg)) / (++n);
+			}
+
+			current_path.push_back(waypoint);
+
+			if((current + 1) == path.rend()) {
+				waypoint.theta = angle_avg;
+				current_path.push_back(waypoint);
+
+				real_coord = cell_to_world(current->x, current->y);
+				
 				waypoint.x = real_coord.x;
 				waypoint.y = real_coord.y;
+				
 				waypoint.theta = angle_avg;
-
-				angle_avg = 0.0;
-				n = 0;
-
-				current_path.push_back(waypoint);
 			}
 		}
 	}
