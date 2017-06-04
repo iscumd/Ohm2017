@@ -198,7 +198,7 @@ int main(int argc, char **argv)
         {
             recordVideo.write(input);
         }
-        waitKey(6ss0);
+        waitKey(60);
         timeEnd;
     }
 }

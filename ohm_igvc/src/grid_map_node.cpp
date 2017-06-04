@@ -220,7 +220,7 @@ void grid_map::odometry_update(const geometry_msgs::Pose2D::ConstPtr &odom) {
 
 	ohm_igvc::position_update p;
 	p.x = std::trunc((odometry.x - raster_reference.x) / m_resolution);
-	p.y = std::trunc((odometry.y - raster_reference.y) / m_resolution);
+	p.y = std::trunc((odometry.y + raster_reference.y) / m_resolution);
 	p.real.x = odometry.x;
 	p.real.y = odometry.y;
 
@@ -248,6 +248,8 @@ bool grid_map::real_to_cell_callback(ohm_igvc::real_to_cell::Request &rq, ohm_ig
 }
 
 bool grid_map::successors_callback(ohm_igvc::get_successors::Request &rq, ohm_igvc::get_successors::Response &rp) {
+	ROS_INFO("Successors request for (%d, %d)", rq.x, rq.y);
+	ROS_INFO("Map size: (%d, %d)", m_world.cols, m_world.rows);
 	if((rq.x < 0 || rq.x > m_world.cols) || (rq.y < 0 || rq.y > m_world.rows)) return false;
 	
 	short *above = nullptr, *on = m_world.ptr<short>(rq.y), *below = nullptr;
