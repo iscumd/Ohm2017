@@ -136,6 +136,10 @@ Planner::Planner() {
 	coord_convert = node.serviceClient<ohm_igvc::coordinate_convert>("coordinate_convert", true);
 	waypoint_service = node.serviceClient<ohm_igvc::waypoint>("waypoint");
 
+	if(!map_get_successors.exists()) {
+		map_get_successors.waitForExistence();
+	}
+
 	get_next_waypoint();
 
 	first_run = true;
@@ -208,6 +212,8 @@ void Planner::plan(int x, int y) {
 
 		for(auto child = successors.begin(); child != successors.end(); ++child) {
 			if(child->parent == nullptr) continue;
+
+			ROS_INFO("Check 1");
 			
 			if(*child == goal) {
 				goal.parent = child->parent;
@@ -221,6 +227,8 @@ void Planner::plan(int x, int y) {
 			child->f = child->g + child->h + child->t;
 
 			if(child->g > permissible_distance) continue;
+
+			ROS_INFO("Check 2");
 
 			// sorry for this.
 
@@ -251,6 +259,8 @@ void Planner::plan(int x, int y) {
 		double angle_avg = 0.0;
 		int n = 0;
 
+		ROS_INFO("Check 3");
+
 		for(auto current = path.rbegin(); current != path.rend();) {
 			angle_avg = (child_angle[current->which_child] + (n * angle_avg)) / (++n);
 			
@@ -260,23 +270,32 @@ void Planner::plan(int x, int y) {
 			waypoint.x = real_coord.x;
 			waypoint.y = real_coord.y;
 
+			ROS_INFO("Check 4");			
+
 			for(auto next = current + 1; next != path.rend(); ++next, ++current) {
 				if(angular_distance(child_angle[current->which_child], child_angle[next->which_child]) >= 90.0) {
 					waypoint.theta = angle_avg;
 
 					angle_avg = 0.0;
 					n = 0;
+
+					ROS_INFO("Check 5");
 					
 					current = next;
 					break;
 				}
 				
+				ROS_INFO("Check 6");
+
 				angle_avg += (child_angle[next->which_child] + (n * angle_avg)) / (++n);
 			}
 
 			current_path.push_back(waypoint);
 
 			if((current + 1) == path.rend()) {
+
+				ROS_INFO("Check 7");				
+
 				waypoint.theta = angle_avg;
 				current_path.push_back(waypoint);
 
@@ -297,6 +316,8 @@ void Planner::plan(int x, int y) {
 	last_in_path = cell_to_world(path.front().x, path.front().y);
 
 	if(debug) last_path_update = ros::Time::now();
+
+	ROS_INFO("Check 8");
 
 	//current_path = final_path;
 }
@@ -340,17 +361,18 @@ std::array<Node, 8> Planner::get_successors(int x, int y, Node &parent) {
 		req.request.x = x;
 		req.request.y = y;
 		
-		map_get_successors.call(req);
+		if(map_get_successors.call(req)) {
 		
-		for(int i = 0; i < 8; i++) {
-			if(req.response.nodes[i].t_cost >= 0) {
-				successors[i].parent = &parent;
+			for(int i = 0; i < 8; i++) {
+				if(req.response.nodes[i].t_cost >= 0) {
+					successors[i].parent = &parent;
+				}
+				
+				successors[i].x = req.response.nodes[i].x;
+				successors[i].y = req.response.nodes[i].y;	
+				successors[i].which_child = i;		
+				successors[i].t = req.response.nodes[i].t_cost;
 			}
-			
-			successors[i].x = req.response.nodes[i].x;
-			successors[i].y = req.response.nodes[i].y;	
-			successors[i].which_child = i;		
-			successors[i].t = req.response.nodes[i].t_cost;
 		}
 	} else {
 		ROS_INFO("failed getting successors");
