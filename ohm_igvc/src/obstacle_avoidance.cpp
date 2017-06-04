@@ -180,7 +180,7 @@ int main(int argc, char **argv)
     ros::NodeHandle n;
     n.param("obstacle_avoidance_obstacle_stop_threshold", obstacleStopThreshold, 3.0);
     n.param("obstacle_avoidance_backup_distance", backupDistance, 1.0);
-    autoControlLogicPublisher = n.advertise<geometry_msgs::Twist>("direction", 1000);
+    autoControlLogicPublisher = n.advertise<geometry_msgs::Twist>("avoidanceOverride", 1000);
     ros::Subscriber lidarSub = n.subscribe("scan", 3, lidarPointsCallback);
     ros::Subscriber odometrySub = n.subscribe("/ohm/odom", 3, odometryCallback);
 
