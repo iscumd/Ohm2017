@@ -30,6 +30,7 @@
 	<arg name="host" default="192.168.0.100" />
 	<node pkg="isc_sick" name="isc_sick" type="LMS1xx_node">
 		<param name="host" value="$(arg host)" />
+		<param name="frame_id" value="sick_laser_link" />
 	</node>
 
 	<!-- GPS -->
@@ -70,8 +71,7 @@
 	<node pkg="isc_shared" type="roboteq_nextgen" name="roboteq_nextgen" output="screen"/>
 
 	<!-- Odometry -->
-	<param name="gps_heading" value="heading" />
-	<param name="gps_position" value="position" />
+	<param name="gps_position" value="pose" />
 	<param name="origin_latitude" value="42.67857277" />
 	<param name="origin_longitude" value="-83.19506167" />
 	<node pkg="ohm_igvc" type="odometry" name="odometry" output="screen" />
@@ -80,7 +80,7 @@
 	<param name="show_map" value="false" />
 	<param name="map_odometry_topic" value="/ohm/odom" />
 	<param name="map_use_pcl" value="true" />
-	<param name="map_laser_topic" value="/scan_to_xy_out" />
+	<param name="map_laser_topic" value="/ohm/pcl" />
 	<param name="map_camera_topic" value="/whiteLineDistances" />
 	<param name="map_raster_x" value="-39.9742904916" />
 	<param name="map_raster_y" value="15.0267575998" />
@@ -92,10 +92,15 @@
 
 	<!-- Path Planning -->
 	<param name="planner_debug" value="true" />
-	<param name="planning_threshold" value="10.0" />
+	<param name="planning_threshold" value="5.0" />
 	<param name="hit_threshold" value="2.5" />
 	<node pkg="ohm_igvc" type="path_planner" name="path_planner" output="screen" />
 
 	<!-- LaserScan Conversion -->
+	<param name="use_tf" value="true" />
+	<param name="pcl_output" value="/ohm/pcl" />
 	<node pkg="ohm_igvc" type="scan_to_xy" name="scan_to_xy" output="screen" />
+
+	<!-- Static Transforms -->
+	<node pkg="tf" type="static_transform_publisher" name="laser_link" args="0 0.395 0 0 0 0 ohm_base_link sick_laser_link 100" />
 </launch>

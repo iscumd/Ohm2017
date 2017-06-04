@@ -7,6 +7,7 @@ add_definitions(-std=c++11)
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
+  tf
   laser_geometry
   message_generation
   roscpp
@@ -60,6 +61,7 @@ add_message_files(
   pixel_locations.msg
   planned_path.msg
   target.msg
+  position_update.msg
 )
 
 ## Generate services in the 'srv' folder
