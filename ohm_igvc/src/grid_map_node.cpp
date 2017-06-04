@@ -14,6 +14,7 @@
 #include <ohm_igvc/real_to_cell.h>
 #include <ohm_igvc/pixel_locations.h>
 #include <ohm_igvc/position_update.h>
+#include <ohm_igvc/drive_mode.h>
 #include <tf/transform_listener.h>
 #include <tf/transform_datatypes.h>
 
@@ -36,6 +37,7 @@ class grid_map {
 		void point_cloud_update(const sensor_msgs::PointCloud::ConstPtr &points); // 
 		void camera_update(const ohm_igvc::pixel_locations::ConstPtr &cam);
 		void odometry_update(const geometry_msgs::Pose2D::ConstPtr &odom); // 
+		void drive_mode_callback(const ohm_igvc::drive_mode::ConstPtr &mode);
 		void display_map(const ros::TimerEvent &e);
 		void save() { cv::imwrite("map_1.bmp", m_world); };
 	private:
@@ -47,6 +49,8 @@ class grid_map {
 		// double distance(Point32 first, Node second) { return std::hypot((second.x - first.x), (second.y - first.y)); };
 
 		cv::Mat m_world;
+
+		bool auto_mode;
 		
 		// position
 		geometry_msgs::Pose2D odometry;
@@ -59,7 +63,7 @@ class grid_map {
 		// occupancy
 		int m_threshold;
 
-		ros::Subscriber camera_input, laser_input, odometry_input;
+		ros::Subscriber camera_input, laser_input, odometry_input, robot_mode;
 		ros::Publisher robot_cell_output;
 		ros::ServiceServer successors, cell_to_real, real_to_cell;
 		ros::NodeHandle node;
@@ -91,7 +95,7 @@ grid_map::grid_map(unsigned short threshold = 200) :
 	m_resolution(0.2),
 	m_threshold(threshold)
  {
-
+	auto_mode = false;
 	bool show_map = false, use_pcl = true;
 	std::string odom_topic = "/ohm/odom", laser_topic = "/ohm/laser", camera_topic = "/ohm/eyes";
 	raster_reference.x = 0.0; raster_reference.y = 0.0;
@@ -117,6 +121,7 @@ grid_map::grid_map(unsigned short threshold = 200) :
 	if(use_pcl) laser_input = node.subscribe<sensor_msgs::PointCloud>(laser_topic, 3, &grid_map::point_cloud_update, this);
 	else laser_input = node.subscribe<sensor_msgs::LaserScan>(laser_topic, 3, &grid_map::laser_scan_update, this);
 	odometry_input = node.subscribe<geometry_msgs::Pose2D>(odom_topic, 3, &grid_map::odometry_update, this);
+	robot_mode = node.subscribe<ohm_igvc::drive_mode>("drive_mode", 1, &grid_map::drive_mode_callback, this);
 
 	robot_cell_output = node.advertise<ohm_igvc::position_update>("/ohm/robot_cell_position", 5);
 
@@ -133,6 +138,7 @@ grid_map::grid_map(unsigned short threshold = 200) :
 }
 
 void grid_map::laser_scan_update(const sensor_msgs::LaserScan::ConstPtr &scan) {
+	if(!auto_mode) return;
 	for(int point = 0; point < scan->ranges.size(); point++) {
 		if(scan->ranges[point] < scan->range_max && scan->ranges[point] > scan->range_min) {
 			double ax = (scan->ranges[point] * std::sin((scan->angle_increment * point) + odometry.theta)) + odometry.x;
@@ -157,6 +163,7 @@ void grid_map::laser_scan_update(const sensor_msgs::LaserScan::ConstPtr &scan) {
 }
 
 void grid_map::point_cloud_update(const sensor_msgs::PointCloud::ConstPtr &points) {
+	if(!auto_mode) return;
 	for(int point = 0; point < points->points.size(); point++) {
 		/*
 		double cos_heading = std::cos(odometry.theta), sin_heading = std::sin(odometry.theta);
@@ -177,6 +184,7 @@ void grid_map::point_cloud_update(const sensor_msgs::PointCloud::ConstPtr &point
 }
 
 void grid_map::camera_update(const ohm_igvc::pixel_locations::ConstPtr &cam) {
+	if(!auto_mode) return;
 	tf::StampedTransform laser, robot;
 
 	try {
@@ -293,6 +301,11 @@ double grid_map::quaternion_to_euler(geometry_msgs::Quaternion q) {
 	double t0 = +2.0f * (q.w * q.x + q.y * q.z);
 	double t1 = +1.0f - 2.0f * (q.x * q.x + ysqr);
 	return std::atan2(t0, t1);
+}
+
+void grid_map::drive_mode_callback(const ohm_igvc::drive_mode::ConstPtr &mode) {
+	if(mode->mode == "auto") auto_mode = true;
+	else auto_mode = false;
 }
 
 /* ------------------// MAIN STUFF //------------------- */
