@@ -10,6 +10,8 @@
 #include <ohm_igvc/robot_position.h>
 #include <ohm_igvc/pid_feedback.h>
 #include <ohm_igvc/planned_path.h>
+#include <ohm_igvc/drive_mode.h>
+#include <ohm_igvc/path_debug.h>
 
 #include <boost/heap/priority_queue.hpp>
 #include <vector>
@@ -72,7 +74,7 @@ class Planner {
 
         ros::NodeHandle node;
         ros::ServiceClient map_get_successors, map_cell_to_world, map_world_to_cell, map_robot_position, coord_convert, waypoint_service;
-		ros::Publisher path_debug;
+		ros::Publisher path_debug_pub;
 		ros::Timer debug_publisher;
 };
 
@@ -85,8 +87,8 @@ Planner::Planner() {
 	node.param("planner_debug", debug, debug);
 
 	if(debug) {
-		path_debug = node.advertise<ohm_igvc::path_debug>("path_planner_debug", 1);
-		debug_publisher = node.createTimer(ros_duration(1.0), &Planner::path_debug, this);
+		path_debug_pub = node.advertise<ohm_igvc::path_debug>("path_planner_debug", 1);
+		debug_publisher = node.createTimer(ros::Duration(1.0), &Planner::path_debug, this);
 	}
 	
 	map_get_successors = node.serviceClient<ohm_igvc::get_successors>("get_successors", true);
@@ -273,8 +275,8 @@ void Planner::path_debug(const ros::TimerEvent &e) {
 	d.distance_to_goal = distance_to_goal();
 	d.distance_to_last = distance_to_last();
 	d.path = debug_path;
-	d.last_update = last_path_update;
-	path_debug.publish(d);
+	d.last_update.data = last_path_update;
+	path_debug_pub.publish(d);
 }
 
 /* ------------------- // MAIN STUFF // -------------------- */

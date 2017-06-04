@@ -53,6 +53,7 @@ find_package(OpenCV 3 REQUIRED)
 add_message_files(
   FILES
   drive_mode.msg
+  path_debug.msg
   map_cell.msg
   location_point.msg
   pid_feedback.msg
