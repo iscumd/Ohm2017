@@ -233,7 +233,7 @@ void vn300_node::setup(int pose_rate, int vel_rate, int status_rate) {
 
 	BinaryOutputRegister pose_bor(
 		ASYNCMODE_PORT1,
-		400 / pose_rate,
+		50,
 		COMMONGROUP_YAWPITCHROLL | COMMONGROUP_POSITION,
 		TIMEGROUP_NONE,
 		IMUGROUP_NONE,
@@ -244,7 +244,7 @@ void vn300_node::setup(int pose_rate, int vel_rate, int status_rate) {
 
 	BinaryOutputRegister velocities_bor(
 		ASYNCMODE_PORT1,
-		400 / vel_rate,
+		50,
 		COMMONGROUP_ANGULARRATE | COMMONGROUP_VELOCITY,
 		TIMEGROUP_NONE,
 		IMUGROUP_NONE,
@@ -255,7 +255,7 @@ void vn300_node::setup(int pose_rate, int vel_rate, int status_rate) {
 
 	BinaryOutputRegister status_bor(
 		ASYNCMODE_PORT1,
-		400 / status_rate,
+		20,
 		COMMONGROUP_INSSTATUS,
 		TIMEGROUP_NONE,
 		IMUGROUP_NONE,
@@ -298,7 +298,7 @@ vn300_node::vn300_node() :
 
 	// params
 	node.param("device", device, device); // for roslaunch files
-	node.param("serial-rate", rate, rate);
+	node.param("serial_rate", rate, rate);
 	node.param("pose_refresh_rate", pose_hz, pose_hz);
 	node.param("velocity_refresh_rate", vel_hz, vel_hz);
 	node.param("status_refresh_rate", status_hz, status_hz);

@@ -31,6 +31,8 @@ struct scan_transformer {
 
       // Create a ROS publisher for the output point cloud
       pub = nh.advertise<sensor_msgs::PointCloud>(output, 1);
+
+      ros::Duration(5.0).sleep();
   }
 
   void scan_to_XY (const sensor_msgs::LaserScan::ConstPtr& scan_in)

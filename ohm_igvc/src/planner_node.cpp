@@ -98,6 +98,8 @@ Planner::Planner() {
 	waypoint_id = 0;
 	pid_path.dir = 1;
 
+	current_path.reserve(100);
+
 	permissible_distance = 25;
 	planning_threshold = 5.0, hit_threshold = 2.0; // planning threshold should be percentage?
 	planning_rate = 0.5;
@@ -142,6 +144,7 @@ void Planner::run() {
 		double d_goal = distance_to_goal(), d_last = distance_to_last();
 
 		if(d_goal < hit_threshold) {
+			ROS_INFO("REACHED GOAL %d", waypoint_id);
 			request_speed(STOP);
 			if(!get_next_waypoint()) finished = true;
 			plan(robot_position.x, robot_position.y);
@@ -149,22 +152,26 @@ void Planner::run() {
 			request_speed(OP_SPEED);
 		} else if(d_last < planning_threshold) {
 			request_speed(PLAN_SPEED);
+			ROS_INFO("REACHED PLANNING THRESHOLD");
 			plan(robot_position.x, robot_position.y);
 			set_first_target();
 			request_speed(OP_SPEED);
 		} else if(feedback.targetDist < hit_threshold) {
+			ROS_INFO("HIT PATH TARGET");
 			set_next_target();
 		}
 	}
 }
 
 void Planner::plan(int x, int y) {
+	ROS_INFO("BEGIN_PLANNING");
     boost::heap::priority_queue<Node> open, closed;
 	std::vector<Node> path;
-	std::vector<geometry_msgs::Pose2D> final_path;	
+	//std::vector<geometry_msgs::Pose2D> final_path;	
 
 	path.reserve(100);
-	final_path.reserve(40);
+	//final_path.reserve(40);
+	current_path.clear();
 	
 	Node start;
 	start.parent = nullptr;
@@ -177,6 +184,8 @@ void Planner::plan(int x, int y) {
 	Node last_q = start;
 
 	bool searching = true;
+
+	ROS_INFO("A* REACHED");
 
 	while(!open.empty() && searching) {
 		Node q = open.top();
@@ -242,21 +251,21 @@ void Planner::plan(int x, int y) {
 				angle_avg = 0.0;
 				n = 0;
 
-				final_path.push_back(waypoint);
+				current_path.push_back(waypoint);
 			}
 		}
 	}
+
+	ROS_INFO("FINAL PATH COMPILED");
 
 	last_in_path = cell_to_world(path.front().x, path.front().y);
 
 	if(debug) last_path_update = ros::Time::now();
 
-	final_path = current_path;
+	//current_path = final_path;
 }
 
 bool Planner::get_next_waypoint() {
-	waypoint_id++;
-
 	ohm_igvc::waypoint req_wp;
 	ohm_igvc::coordinate_convert req_conv;
 	ohm_igvc::real_to_cell req_cell;
@@ -282,6 +291,8 @@ bool Planner::get_next_waypoint() {
 	goal.x = req_cell.response.x;
 	goal.y = req_cell.response.y;
 
+	waypoint_id++;
+
 	return true;
 }
 
@@ -305,6 +316,8 @@ std::array<Node, 8> Planner::get_successors(int x, int y, Node &parent) {
 			successors[i].which_child = i;		
 			successors[i].t = req.response.nodes[i].t_cost;
 		}
+	} else {
+		ROS_INFO("failed getting successors")
 	}
 
 	return successors;

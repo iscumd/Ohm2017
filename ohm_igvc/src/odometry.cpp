@@ -16,14 +16,14 @@ class odometry {
     void position_callback(const vn300::Pose::ConstPtr &pos);
     bool convert_callback(ohm_igvc::coordinate_convert::Request &rq, ohm_igvc::coordinate_convert::Response &rp);
 	double gps_x(double lon) { 
-		ROS_INFO("K_EW = %f", K_EW);
-		ROS_INFO("lon = %f", lon);
-		ROS_INFO("start lon = %f", origin.longitude);
+		//ROS_INFO("K_EW = %f", K_EW);
+		//ROS_INFO("lon = %f", lon);
+		//ROS_INFO("start lon = %f", origin.longitude);
 		return (K_EW * (lon - origin.longitude)); };
 	double gps_y(double lat) { 
-		ROS_INFO("K_NS = %f", K_NS);
-		ROS_INFO("lat = %f", lat);
-		ROS_INFO("start lat = %f", origin.latitude);
+		//ROS_INFO("K_NS = %f", K_NS);
+		//ROS_INFO("lat = %f", lat);
+		//ROS_INFO("start lat = %f", origin.latitude);
 		return (K_NS * (lat - origin.latitude)); };
 
   private:
