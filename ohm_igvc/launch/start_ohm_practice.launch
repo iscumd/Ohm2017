@@ -34,8 +34,6 @@
 
 	<!-- GPS -->
 	<param name="device" value="/dev/ttyUSB1" />
-	<param name="gps_heading" value="/heading" />
-	<param name="gps_position" value="/position" />
 	<node pkg="vn300" type="vn300_node" name="vn300_node" output="screen" />
 
 	<!-- Waypoint Service -->
@@ -72,6 +70,8 @@
 	<node pkg="isc_shared" type="roboteq_nextgen" name="roboteq_nextgen" output="screen"/>
 
 	<!-- Odometry -->
+	<param name="gps_heading" value="heading" />
+	<param name="gps_position" value="position" />
 	<param name="origin_latitude" value="42.67857277" />
 	<param name="origin_longitude" value="-83.19506167" />
 	<node pkg="ohm_igvc" type="odometry" name="odometry" output="screen" />
