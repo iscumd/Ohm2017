@@ -4,7 +4,7 @@ An obstacle course navigating robot
 # Usage
 This package targets ROS Kinetic.
 
-Requires [iscumd/SharedROSNodes](https://github.com/iscumd/SharedROSNodes).
+Requires [iscumd/SharedROSNodes V1.0.0](https://github.com/iscumd/SharedROSNodes/releases/tag/v1.0.0).
 
 # CAMERA CONFIGURATION and SETUP
 ## CAMERA MUST BE RECAILBRATED IF POSITION AND ORIENTATION CHANGE
