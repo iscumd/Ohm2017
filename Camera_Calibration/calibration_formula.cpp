@@ -1,7 +1,6 @@
 #include <iostream>
 #include <stdlib.h>
 
-using namespace std;
 
 // this program is used to find the constants for the camera
 
@@ -30,29 +29,29 @@ int main()
     double a, b, c, d; // these are the numbers that go into the 
                       // ros params in vision_test.launch under "calibration constants"
 
-    cout << "xp1 ";
-    cin >> xp1;
-    cout << "yp1 ";
-    cin >> yp1;
-    cout << "xp2 ";
-    cin >> xp2;
-    cout << "yp2 ";
-    cin >> yp2;
-    cout << "u1 ";
-    cin >> u1;
-    cout << "v1 ";
-    cin >> v1;
-    cout << "u2 ";
-    cin >> u2;
-    cout << "v2 ";
-    cin >> v2;
+    std::cout << "xp1 ";
+    std::cin >> xp1;
+    std::cout << "yp1 ";
+    std::cin >> yp1;
+    std::cout << "xp2 ";
+    std::cin >> xp2;
+    std::cout << "yp2 ";
+    std::cin >> yp2;
+    std::cout << "u1 ";
+    std::cin >> u1;
+    std::cout << "v1 ";
+    std::cin >> v1;
+    std::cout << "u2 ";
+    std::cin >> u2;
+    std::cout << "v2 ";
+    std::cin >> v2;
 
     a = (u1 - u2) / (xp1 - xp2);
     c = (v1 - v2) / (yp1 - yp2);
     b = u2 - (a * xp2);
     d = v2 - (c * yp2);
-    cout << "a " << a << endl;
-    cout << "b " << b << endl;
-    cout << "c " << c << endl;
-    cout << "d " << d << endl;
+    std::cout << "a " << a << std::endl;
+    std::cout << "b " << b << std::endl;
+    std::cout << "c " << c << std::endl;
+    std::cout << "d " << d << std::endl;
 }
