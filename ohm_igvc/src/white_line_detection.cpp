@@ -6,8 +6,6 @@
 #include <ros/ros.h>
 #include "geometry_msgs/Point32.h"
 #include "ohm_igvc/pixel_locations.h"
-#define timeStart //start = clock();
-#define timeEnd //cout << "time: " << (clock() - start) / (double)(CLOCKS_PER_SEC / 1000) << "ms" << endl;
 
 using namespace std;
 using namespace cv;
@@ -42,7 +40,7 @@ int main(int argc, char **argv)
     */
     // double X_meter, Y_meter;
 
-    clock_t start;
+
     //timeStart;
     //timeEnd
 
@@ -146,7 +144,6 @@ int main(int argc, char **argv)
     ////////////////////////////////////////////////////////////////////////////////////////////////
     while (ros::ok())
     {
-        timeStart;
         ohm_igvc::pixel_locations msg;
 
         ohm_webcam >> input;
@@ -199,37 +196,24 @@ int main(int argc, char **argv)
             recordVideo.write(input);
         }
         waitKey(60);
-        timeEnd;
     }
 }
 
 void on_low_H_thresh_trackbar(int, void *)
-{ /*
-    low_H = min(high_H - 1, low_H);
-    setTrackbarPos("Low H", "Src", low_H);*/
+{ 
 }
 void on_high_H_thresh_trackbar(int, void *)
 {
-    // high_H = max(high_H, low_H + 1);
-    //  setTrackbarPos("High H", "Src", high_H);
 }
 void on_low_S_thresh_trackbar(int, void *)
 {
-    // low_S = min(high_S - 1, low_S);
-    //  setTrackbarPos("Low S", "Src", low_S);
 }
 void on_high_S_thresh_trackbar(int, void *)
 {
-    //  high_S = max(high_S, low_S + 1);
-    //  setTrackbarPos("High S", "Src", high_S);
 }
 void on_low_V_thresh_trackbar(int, void *)
 {
-    //  low_V = min(high_V - 1, low_V);
-    // setTrackbarPos("Low V", "Src", low_V);
 }
 void on_high_V_thresh_trackbar(int, void *)
 {
-    //  high_V = max(high_V, low_V + 1);
-    // setTrackbarPos("High V", "Src", high_V);
 }
